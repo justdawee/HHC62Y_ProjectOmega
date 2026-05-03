@@ -8,14 +8,22 @@ open System.Text.Json
 open System.Text.Json.Serialization
 open System.Threading.Tasks
 
-/// Groq API client (OpenAI-compatible chat completions endpoint with JSON mode).
-/// Documentation: https://console.groq.com/docs/api-reference
+/// OpenAI Chat Completions client. The wire format is identical to Groq's
+/// OpenAI-compatible endpoint, so swapping providers is just an endpoint +
+/// model + env-var change. Override the model via OPENAI_MODEL.
+/// Documentation: https://platform.openai.com/docs/api-reference/chat
 module LlmClient =
 
-    let private endpoint = "https://api.groq.com/openai/v1/chat/completions"
+    let private endpoint = "https://api.openai.com/v1/chat/completions"
 
-    /// Default model — Llama 3.3 70B versatile, generous free-tier quota.
-    let private model = "llama-3.3-70b-versatile"
+    /// Default model — gpt-5.4-mini. Cheap (~$0.75 input / $4.50 output per
+    /// 1M tokens) but smart enough for structured JSON recipe generation.
+    /// Override with the OPENAI_MODEL env var if you want a different one
+    /// (e.g. gpt-5.4 for higher quality, gpt-5.4-nano for cheaper).
+    let private model () =
+        match Environment.GetEnvironmentVariable("OPENAI_MODEL") with
+        | null | "" -> "gpt-5.4-mini"
+        | m -> m
 
     let private jsonOpts =
         let o = JsonSerializerOptions(PropertyNameCaseInsensitive = true)
@@ -171,12 +179,12 @@ module LlmClient =
                              (inspirations: string list) (items: PantryItem list)
                              : Task<Result<RecipeBundle, string>> =
         task {
-            let apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY")
+            let apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
             if String.IsNullOrWhiteSpace(apiKey) then
                 let msg =
                     match lang with
-                    | En -> "Missing GROQ_API_KEY environment variable. Set it in the .env file."
-                    | Hu -> "Hiányzó GROQ_API_KEY környezeti változó. Állítsd be a .env fájlban."
+                    | En -> "Missing OPENAI_API_KEY environment variable. Set it in the .env file."
+                    | Hu -> "Hiányzó OPENAI_API_KEY környezeti változó. Állítsd be a .env fájlban."
                 return Error msg
             else
                 try
@@ -188,7 +196,7 @@ module LlmClient =
                         | Hu ->
                             "Csak SZIGORÚAN érvényes JSON-t adsz vissza, sem Markdown, sem kommentár. A recept tartalma (cím, lépések, címkék) KIZÁRÓLAG MAGYARUL íródjon — az idegen nevű alapanyagokat fordítsd magyarra a lépésekben."
                     let req = {
-                        Model = model
+                        Model = model ()
                         Temperature = 0.7
                         ResponseFormat = { Type = "json_object" }
                         Messages = [|

@@ -534,21 +534,22 @@ module Client =
             if pantryNotEmpty || hasRecipe then
                 toastVisible.Value <- true
 
-        // ---- close dropdowns when clicking outside the form
+        // ---- close dropdowns when clicking outside the form / popups.
+        // Uses Element.closest() via JS interop because WebSharper's UI proxy
+        // for Dom.Element doesn't expose it, and the manual ancestor climb
+        // we had previously misclassified clicks inside the dropdown panel
+        // (which is positioned absolute but DOM-wise still inside .add-row,
+        // yet some browsers reparent in subtle ways during animations).
+        let matches (target: obj) (selector: string) : bool =
+            JS.Inline<obj -> string -> bool>(
+                "function(t, s) { return !!(t && t.closest && t.closest(s)); }"
+            ) target selector
+
         let onGlobalMouseDown (e: Dom.Event) =
-            let target = e.Target :?> Dom.Element
-            // Close unit dropdown if click is outside any add-row element
-            let inAddRow =
-                let mutable el : Dom.Element = target
-                let mutable found = false
-                let mutable safety = 0
-                while not (isNull el) && not found && safety < 30 do
-                    let cls = el.GetAttribute("class")
-                    if not (isNull cls) && cls.Contains("add-row") then found <- true
-                    else el <- el.ParentNode :?> Dom.Element
-                    safety <- safety + 1
-                found
-            if not inAddRow then
+            let target = e.Target
+            let insideForm  = matches target ".add-row"
+            let insidePopup = matches target "[data-popup]"
+            if not insideForm && not insidePopup then
                 if unitOpen.Value then unitOpen.Value <- false
                 if suggOpen.Value then suggOpen.Value <- false
 

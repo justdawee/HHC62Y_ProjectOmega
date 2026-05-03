@@ -62,7 +62,7 @@ module UserContext =
         let factory =
             http.RequestServices.GetService(typeof<IHttpClientFactory>)
             :?> IHttpClientFactory
-        factory.CreateClient("groq")
+        factory.CreateClient("openai")
 
 
 /// RPC surface exposed to the client. All methods return Async<'T> so WebSharper

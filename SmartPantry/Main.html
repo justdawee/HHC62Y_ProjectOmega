@@ -377,19 +377,22 @@
   </svg>
 </button>
 
-<!-- Unit dropdown panel (positioned absolute right under trigger) -->
+<!-- Unit dropdown panel (positioned absolute right under trigger).
+     data-popup marks it for the global click-outside handler so clicks
+     inside don't accidentally dismiss. -->
 <div ws-template="UnitPanel"
-     class="absolute right-0 top-full mt-2 z-30 glass rounded-2xl p-1.5 min-w-[140px] animate-modalIn shadow-2xl"
+     data-popup="unit"
+     class="absolute right-0 top-full mt-2 z-50 glass-pop rounded-2xl p-1.5 min-w-[160px] animate-modalIn"
 >
   <div ws-replace="UnitOptions" class="flex flex-col"></div>
 </div>
 
 <button
   ws-template="UnitOption"
-  ws-onclick="OnUnitPick"
+  ws-onmousedown="OnUnitPick"
   ws-attr="OptAttrs"
   type="button"
-  class="text-left px-3 py-2 rounded-xl text-sm transition flex items-center gap-2"
+  class="text-left px-3 py-2 rounded-xl text-sm transition flex items-center gap-2 whitespace-nowrap"
 >
   <span ws-replace="Check" class="w-3 h-3 inline-flex items-center justify-center"></span>
   <span>${UnitOptLabel}</span>
@@ -397,7 +400,8 @@
 
 <!-- Autocomplete suggestion list -->
 <div ws-template="SuggestionPanel"
-     class="glass rounded-2xl p-1.5 max-h-72 overflow-y-auto shadow-2xl animate-modalIn"
+     data-popup="suggestions"
+     class="glass-pop rounded-2xl p-1.5 max-h-72 overflow-y-auto animate-modalIn"
 >
   <div ws-replace="SuggestionRows" class="flex flex-col"></div>
 </div>

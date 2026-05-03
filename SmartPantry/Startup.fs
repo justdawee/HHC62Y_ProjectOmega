@@ -43,9 +43,9 @@ let main args =
         .AddCookie("WebSharper", fun _ -> ())
     |> ignore
 
-    // Named HttpClient for Groq API — DI manages socket pooling.
-    builder.Services.AddHttpClient("groq", fun (c: System.Net.Http.HttpClient) ->
-        c.Timeout <- TimeSpan.FromSeconds(35.0))
+    // Named HttpClient for OpenAI / TheMealDB calls — DI manages socket pooling.
+    builder.Services.AddHttpClient("openai", fun (c: System.Net.Http.HttpClient) ->
+        c.Timeout <- TimeSpan.FromSeconds(60.0))
     |> ignore
 
     let app = builder.Build()

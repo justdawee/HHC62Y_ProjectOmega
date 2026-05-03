@@ -108,7 +108,7 @@ module Strings =
         EmptyPantryHint = "Add an ingredient — then I can suggest a recipe."
 
         AiChef = "AI Chef"
-        PoweredBy = "powered by Groq"
+        PoweredBy = "powered by OpenAI"
         GenerateRecipe = "Generate Recipe with AI"
         IngredientsCount = "ingredients"
         NoRecipeYet = "No recipe yet"
@@ -168,7 +168,7 @@ module Strings =
         EmptyPantryHint = "Adj hozzá egy alapanyagot — utána javasolhatok hozzá receptet."
 
         AiChef = "AI Séf"
-        PoweredBy = "Groq segít"
+        PoweredBy = "OpenAI segít"
         GenerateRecipe = "Receptet az AI-tól"
         IngredientsCount = "alapanyag"
         NoRecipeYet = "Még nincs recept"

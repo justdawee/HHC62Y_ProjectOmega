@@ -1,11 +1,11 @@
 # SmartPantry
 
-> **AI-powered pantry & recipe assistant** — F# / WebSharper / SQLite / Tailwind / Groq
+> **AI-powered pantry & recipe assistant** — F# / WebSharper / SQLite / Tailwind / OpenAI
 
 [![CI](https://github.com/justdawee/HHC62Y_ProjectOmega/actions/workflows/docker-build.yml/badge.svg)](https://github.com/justdawee/HHC62Y_ProjectOmega/actions/workflows/docker-build.yml)
 
 SmartPantry helps you stop throwing food away. Track what's in your pantry,
-flag what's about to expire, and let Groq's Llama 3.3 70B propose **three
+flag what's about to expire, and let OpenAI's gpt-5.4-mini propose **three
 distinct recipe variations** (quick / hearty / creative) from the ingredients
 you actually have on hand.
 
@@ -20,10 +20,10 @@ you actually have on hand.
   showing live ingredient count, two equal columns, compact pill-shaped
   add-row, "Clear all" pantry reset, dedicated AI Chef panel.
 - **Three recipe alternatives per generation**, surfaced as Quick / Hearty /
-  Creative tabs the user can flip between without re-querying Groq.
+  Creative tabs the user can flip between without re-querying the API.
 - **Recipe imagery** — server-side hybrid: TheMealDB filters by the user's
-  ingredients to harvest 5–8 real-world recipe titles which are fed to Groq
-  as inspiration; after Groq generates the 3 variants, each variant's
+  ingredients to harvest 5–8 real-world recipe titles which are fed to the LLM
+  as inspiration; after the LLM generates the 3 variants, each variant's
   English `imagePromptHint` is searched on TheMealDB and the first matching
   recipe's photo URL is attached. A procedural gradient + emoji fallback
   always renders behind the photo so the card never looks broken when no
@@ -43,7 +43,7 @@ moves:
    with a glanceable colour-coded badge so the about-to-expire stuff jumps
    out at you.
 2. **Press one button** → the server bundles your inventory into a Hungarian
-   chef-prompt, ships it to Groq's free Llama-3.3-70B endpoint in JSON mode,
+   chef-prompt, ships it to OpenAI's chat completions endpoint in JSON mode,
    and returns a structured recipe (title, prep time, numbered steps, tags)
    that renders into a neat modal.
 
@@ -59,7 +59,7 @@ password, no account**.
 | Frontend    | **WebSharper.UI** templating, reactive `Var` / `View` / `ListModel`    |
 | Database    | **SQLite** + Dapper, single file on a mounted volume                   |
 | Styling     | **Tailwind CSS** built at build time via MSBuild target                |
-| AI          | **Groq** chat completions (Llama 3.3 70B) with JSON mode               |
+| AI          | **OpenAI** chat completions (gpt-5.4-mini) with JSON mode               |
 | Bundling    | esbuild (WebSharper Release) → single `wwwroot/Scripts/all.js`         |
 | Container   | Multi-stage Dockerfile (Node → SDK → ASP.NET runtime, non-root user)   |
 | CI/CD       | GitHub Actions → `ghcr.io/justdawee/hhc62y_projectomega`               |
@@ -74,7 +74,7 @@ password, no account**.
                               ┌─────────────┼─────────────┐
                               ▼             ▼             ▼
                      ┌────────────┐  ┌────────────┐  ┌────────────┐
-                     │  SQLite    │  │  Dapper    │  │ Groq LLM   │
+                     │  SQLite    │  │  Dapper    │  │ OpenAI       │
                      │  /data/.db │  │  + Option  │  │  (HTTPS)   │
                      │            │  │  handlers  │  │            │
                      └────────────┘  └────────────┘  └────────────┘
@@ -86,22 +86,22 @@ password, no account**.
 |--------------------------------------------------------------|---------------------------------------------------|
 | ![dark](screenshots/10-pantry-with-badges-fixed.png)        | ![light](screenshots/11-light-mode.png)          |
 
-| Mobile (375 px)                              | Recipe modal (Groq Llama 3.3 generated)                  |
+| Mobile (375 px)                              | Recipe modal (OpenAI gpt-5.4-mini generated)                  |
 |----------------------------------------------|-----------------------------------------------------------|
 | ![mobile](screenshots/12-mobile-with-items.png) | ![recipe](screenshots/20-recipe-loaded-success.png)    |
 
 ## Quick start (Docker)
 
-You need: **Docker** ≥ 24, **a Groq API key** (free at
-[console.groq.com](https://console.groq.com/keys)).
+You need: **Docker** ≥ 24, **an OpenAI API key** (cheap, at
+[platform.openai.com/api-keys](https://platform.openai.com/api-keys)).
 
 ```bash
 git clone https://github.com/justdawee/HHC62Y_ProjectOmega.git
 cd HHC62Y_ProjectOmega
 
-# Drop your Groq key in the env file
+# Drop your OpenAI key in the env file
 cp .env.example .env
-$EDITOR .env       # set GROQ_API_KEY=gsk_...
+$EDITOR .env       # set OPENAI_API_KEY=sk-proj-...
 
 # Build + run (image is built locally on first run)
 docker compose up -d
@@ -134,7 +134,7 @@ dotnet run -c Release
 
 # Or build + run with the same dotnet workflow
 dotnet build -c Release
-GROQ_API_KEY=gsk_... ASPNETCORE_ENVIRONMENT=Production \
+OPENAI_API_KEY=sk-proj-... ASPNETCORE_ENVIRONMENT=Production \
   dotnet run -c Release --no-build
 ```
 
@@ -147,7 +147,7 @@ GROQ_API_KEY=gsk_... ASPNETCORE_ENVIRONMENT=Production \
 
 | Var                       | Required | Default                                  | Description                                            |
 |---------------------------|----------|------------------------------------------|--------------------------------------------------------|
-| `GROQ_API_KEY`            | yes      | _none_                                   | Groq Console API token. Without it, recipe gen errors. |
+| `OPENAI_API_KEY`            | yes      | _none_                                   | OpenAI API key. Without it, recipe gen errors. |
 | `DB_PATH`                 | no       | `./smartpantry.db` (next to the binary)  | SQLite file location. In Docker we set `/data/...`.    |
 | `ASPNETCORE_URLS`         | no       | `http://+:5000` (dev) / `:8080` (Docker) | Listen address.                                        |
 | `ASPNETCORE_ENVIRONMENT`  | no       | `Production` (Docker) / `Development`    | Standard ASP.NET Core knob.                            |
@@ -161,7 +161,7 @@ is committed.
 SmartPantry/
 ├── Domain.fs            F# records (PantryItem, Recipe, RecipeStep, …)
 ├── Database.fs          Dapper + SQLite + Option<'T> type handlers
-├── LlmClient.fs         Groq HTTP client, prompt builder, JSON parsing
+├── LlmClient.fs         OpenAI HTTP client, prompt builder, JSON parsing
 ├── Remoting.fs          [<Rpc>] surface + cookie-derived UserContext
 ├── Startup.fs           ASP.NET host, sp_uid cookie middleware, DI
 ├── Site.fs              Single-page Sitelet (server-side shell)
@@ -212,7 +212,7 @@ That's why the sticky CTA, modal shell, and empty state are all built up-front.
 
 ### LLM contract
 
-The Groq prompt asks **strictly** for JSON in this shape:
+The OpenAI prompt asks **strictly** for JSON in this shape:
 
 ```json
 {
@@ -223,7 +223,7 @@ The Groq prompt asks **strictly** for JSON in this shape:
 }
 ```
 
-We send `response_format: { "type": "json_object" }` so Groq guarantees
+We send `response_format: { "type": "json_object" }` so OpenAI guarantees
 parseable JSON. Failures (network, 4xx/5xx, JSON parse) flow back as
 `Result<Recipe, string>` and surface as a friendly modal with a retry button.
 
@@ -252,7 +252,7 @@ End-to-end tested in Chrome via the Chrome DevTools MCP:
 - ✅ Performance trace: **LCP 69 ms · CLS 0.00 · TTFB 3 ms** on local Release build
 - ✅ Performance with 4× CPU throttling: **LCP 103 ms · CLS 0.00**
 - ✅ Anonymous user isolation (incognito tab gets a fresh pantry)
-- ✅ End-to-end Groq recipe generation in ~1 s: prompt → JSON → modal renders
+- ✅ End-to-end OpenAI recipe generation in ~3-9 s: prompt → JSON → modal renders
   with title, prep time, tags, and stagger-animated step list
 
 ## License
