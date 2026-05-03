@@ -27,48 +27,52 @@ module LlmClient =
     // Request / response wire types (kept private to this module)
     // ------------------------------------------------------------------
 
+    // F# record fields compile to PascalCase IL properties; the System.Text.Json
+    // CamelCase policy combined with [<CLIMutable>] occasionally drops fields
+    // entirely on serialization. Lock wire names with explicit JsonPropertyName.
+
     [<CLIMutable>]
-    type private Message = {
-        role: string
-        content: string
+    type Message = {
+        [<JsonPropertyName("role")>]    Role: string
+        [<JsonPropertyName("content")>] Content: string
     }
 
     [<CLIMutable>]
-    type private ResponseFormat = {
-        ``type``: string
+    type ResponseFormat = {
+        [<JsonPropertyName("type")>] Type: string
     }
 
     [<CLIMutable>]
-    type private CompletionRequest = {
-        model: string
-        messages: Message array
-        temperature: float
-        response_format: ResponseFormat
+    type CompletionRequest = {
+        [<JsonPropertyName("model")>]           Model: string
+        [<JsonPropertyName("messages")>]        Messages: Message array
+        [<JsonPropertyName("temperature")>]     Temperature: float
+        [<JsonPropertyName("response_format")>] ResponseFormat: ResponseFormat
     }
 
     [<CLIMutable>]
-    type private Choice = {
-        message: Message
+    type Choice = {
+        [<JsonPropertyName("message")>] Message: Message
     }
 
     [<CLIMutable>]
-    type private CompletionResponse = {
-        choices: Choice array
+    type CompletionResponse = {
+        [<JsonPropertyName("choices")>] Choices: Choice array
     }
 
     [<CLIMutable>]
-    type private RecipeStepWire = {
-        stepNumber: int
-        instruction: string
+    type RecipeStepWire = {
+        [<JsonPropertyName("stepNumber")>]  StepNumber: int
+        [<JsonPropertyName("instruction")>] Instruction: string
     }
 
     /// LLM-side recipe shape — strict JSON schema we ask Groq to return.
     [<CLIMutable>]
-    type private RecipeWire = {
-        title: string
-        prepTimeMinutes: int
-        steps: RecipeStepWire array
-        tags: string array
+    type RecipeWire = {
+        [<JsonPropertyName("title")>]           Title: string
+        [<JsonPropertyName("prepTimeMinutes")>] PrepTimeMinutes: int
+        [<JsonPropertyName("steps")>]           Steps: RecipeStepWire array
+        [<JsonPropertyName("tags")>]            Tags: string array
     }
 
     // ------------------------------------------------------------------
@@ -124,13 +128,13 @@ module LlmClient =
                 try
                     let prompt = buildPrompt items
                     let req = {
-                        model = model
-                        temperature = 0.7
-                        response_format = { ``type`` = "json_object" }
-                        messages = [|
-                            { role = "system"
-                              content = "You return STRICTLY valid JSON, never plain text. The user is Hungarian; reply in Hungarian." }
-                            { role = "user"; content = prompt }
+                        Model = model
+                        Temperature = 0.7
+                        ResponseFormat = { Type = "json_object" }
+                        Messages = [|
+                            { Role = "system"
+                              Content = "You return STRICTLY valid JSON, never plain text. The user is Hungarian; reply in Hungarian." }
+                            { Role = "user"; Content = prompt }
                         |]
                     }
                     use msg = new HttpRequestMessage(HttpMethod.Post, endpoint)
@@ -148,9 +152,9 @@ module LlmClient =
                     else
                         let! completion = resp.Content.ReadFromJsonAsync<CompletionResponse>(jsonOpts)
                         let content =
-                            completion.choices
+                            completion.Choices
                             |> Array.tryHead
-                            |> Option.map (fun c -> c.message.content)
+                            |> Option.map (fun c -> c.Message.Content)
                             |> Option.defaultValue ""
 
                         if String.IsNullOrWhiteSpace(content) then
@@ -158,17 +162,17 @@ module LlmClient =
                         else
                             try
                                 let wire = JsonSerializer.Deserialize<RecipeWire>(content, jsonOpts)
-                                let recipe = {
-                                    Title = wire.title
-                                    PrepTimeMinutes = wire.prepTimeMinutes
+                                let recipe : Recipe = {
+                                    Title = wire.Title
+                                    PrepTimeMinutes = wire.PrepTimeMinutes
                                     Steps =
-                                        (if isNull wire.steps then Array.empty else wire.steps)
+                                        (if isNull wire.Steps then Array.empty else wire.Steps)
                                         |> Array.map (fun s ->
-                                            { StepNumber = s.stepNumber
-                                              Instruction = s.instruction })
+                                            ({ StepNumber = s.StepNumber
+                                               Instruction = s.Instruction } : RecipeStep))
                                         |> List.ofArray
                                     Tags =
-                                        (if isNull wire.tags then Array.empty else wire.tags)
+                                        (if isNull wire.Tags then Array.empty else wire.Tags)
                                         |> List.ofArray
                                 }
                                 return Ok recipe

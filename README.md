@@ -64,9 +64,9 @@ password, no account**.
 |--------------------------------------------------------------|---------------------------------------------------|
 | ![dark](screenshots/10-pantry-with-badges-fixed.png)        | ![light](screenshots/11-light-mode.png)          |
 
-| Mobile (375 px)                              | Recipe modal (error state)                                  |
-|----------------------------------------------|-------------------------------------------------------------|
-| ![mobile](screenshots/12-mobile-with-items.png) | ![modal](screenshots/07-modal-after-jsclick.png)         |
+| Mobile (375 px)                              | Recipe modal (Groq Llama 3.3 generated)                  |
+|----------------------------------------------|-----------------------------------------------------------|
+| ![mobile](screenshots/12-mobile-with-items.png) | ![recipe](screenshots/20-recipe-loaded-success.png)    |
 
 ## Quick start (Docker)
 
@@ -228,8 +228,10 @@ End-to-end tested in Chrome via the Chrome DevTools MCP:
 - ✅ Dark ⇄ Light toggle, persisted in `localStorage`, 600 ms crossfade
 - ✅ Responsive 320 / 375 / 1440 px (no overflow, layout reflows correctly)
 - ✅ Performance trace: **LCP 69 ms · CLS 0.00 · TTFB 3 ms** on local Release build
+- ✅ Performance with 4× CPU throttling: **LCP 103 ms · CLS 0.00**
 - ✅ Anonymous user isolation (incognito tab gets a fresh pantry)
-- ⚠️ Recipe loading + loaded states require a real `GROQ_API_KEY` to verify
+- ✅ End-to-end Groq recipe generation in ~1 s: prompt → JSON → modal renders
+  with title, prep time, tags, and stagger-animated step list
 
 ## License
 
