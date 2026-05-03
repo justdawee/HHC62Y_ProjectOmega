@@ -700,25 +700,24 @@ module Client =
             |> View.Map (fun l -> renderSuggestions l newName newUnit suggOpen suggHi)
             |> Doc.EmbedView
 
-        // ---- click-shield: an invisible full-viewport overlay rendered
-        // behind any open popup (z-40 vs panel z-50). Clicking it closes
-        // both popups, which is the only thing we need for the
-        // click-outside dismiss behavior.
-        let popupAnyOpenView =
-            View.Map2 (fun u s -> u || s) unitOpen.View suggOpen.View
-        let clickShieldDoc =
-            popupAnyOpenView
-            |> View.Map (fun anyOpen ->
-                if not anyOpen then Doc.Empty
-                else
-                    Doc.Element "div" [
-                        Attr.Create "class" "fixed inset-0 z-40"
-                        Attr.Create "aria-hidden" "true"
-                        on.mouseDown (fun _ _ ->
-                            unitOpen.Value <- false
-                            suggOpen.Value <- false)
-                    ] [] :> Doc)
-            |> Doc.EmbedView
+        // ---- popup dismiss helpers. We don't use a fixed-position click-
+        // shield (browsers' coordinate hit-test can put it above sibling
+        // popups even when z-index says otherwise). Instead we wrap the
+        // whole app in an outer click handler that closes any open popup
+        // when the click target is OUTSIDE both the form-trigger area and
+        // the popup itself.
+        //
+        // Each helper is a single-arg JS.Inline because WebSharper's macro
+        // doesn't reliably handle multi-arg curried JS.Inline calls (they
+        // emit a runtime TypeError when invoked).
+        let isInsideForm (target: obj) : bool =
+            JS.Inline<obj -> bool>(
+                "function(t){var e=t;if(e&&e.nodeType===3)e=e.parentElement;return !!(e && e.closest && e.closest('.add-row-form'));}"
+            ) target
+        let isInsidePopup (target: obj) : bool =
+            JS.Inline<obj -> bool>(
+                "function(t){var e=t;if(e&&e.nodeType===3)e=e.parentElement;return !!(e && e.closest && e.closest('[data-popup]'));}"
+            ) target
 
         // ---- toast Doc
         let toastDoc =
@@ -780,4 +779,18 @@ module Client =
                 .FooterAuthor(strView (fun s -> s.FooterAuthor))
                 .Doc()
 
-        Doc.Concat [ appDoc; clickShieldDoc; toastDoc ]
+        // Wrap the entire app in a click-listening container. When a click
+        // lands somewhere that is neither the add-row form (trigger) nor
+        // an open popup, dismiss any open popups. This avoids the
+        // pointer-events / z-stacking issues that an overlay shield runs
+        // into.
+        let dismissOnOutsideClick =
+            Doc.Element "div" [
+                Attr.Create "class" "min-h-screen"
+                on.click (fun _ e ->
+                    let target = e.Target
+                    if not (isInsideForm target) && not (isInsidePopup target) then
+                        if unitOpen.Value then unitOpen.Value <- false
+                        if suggOpen.Value then suggOpen.Value <- false)
+            ] [ appDoc ]
+        Doc.Concat [ dismissOnOutsideClick; toastDoc ]

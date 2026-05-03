@@ -402,10 +402,13 @@
 
 <!-- Each option is full-width with text aligned left so the entire row
      is a click target, not just the tight word. The selected row gets a
-     soft tinted bar instead of a centred pill. -->
+     soft tinted bar instead of a centred pill. We bind on `click` (not
+     mousedown) — the click-shield runs on mousedown and exits early
+     when the click target is inside [data-popup], so the click event
+     still reaches this handler in the natural mouseup -> click step. -->
 <button
   ws-template="UnitOption"
-  ws-onmousedown="OnUnitPick"
+  ws-onclick="OnUnitPick"
   ws-attr="OptAttrs"
   type="button"
   class="w-full text-left px-3 py-2 rounded-lg text-sm transition flex items-center gap-2 whitespace-nowrap"
