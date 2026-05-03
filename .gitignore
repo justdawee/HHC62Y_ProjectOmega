@@ -27,6 +27,8 @@ SmartPantry/websharper.log
 SmartPantry/build/
 SmartPantry/wwwroot/Scripts/
 SmartPantry/wwwroot/Content/
+# Allow our hand-authored static assets back in
+!SmartPantry/wwwroot/favicon.svg
 
 # --- Tailwind / Node ---
 node_modules/
