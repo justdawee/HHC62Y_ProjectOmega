@@ -14,7 +14,7 @@ module LlmClient =
 
     let private endpoint = "https://api.groq.com/openai/v1/chat/completions"
 
-    /// Default model — Llama 3.3 70B versatile, generous free-tier quota and ~500 tok/s.
+    /// Default model — Llama 3.3 70B versatile, generous free-tier quota.
     let private model = "llama-3.3-70b-versatile"
 
     let private jsonOpts =
@@ -24,12 +24,10 @@ module LlmClient =
         o
 
     // ------------------------------------------------------------------
-    // Request / response wire types (kept private to this module)
+    // Wire types — kept public (System.Text.Json refuses non-public)
+    // with explicit JsonPropertyName to lock the wire spelling regardless
+    // of F#'s default PascalCase compilation of record fields.
     // ------------------------------------------------------------------
-
-    // F# record fields compile to PascalCase IL properties; the System.Text.Json
-    // CamelCase policy combined with [<CLIMutable>] occasionally drops fields
-    // entirely on serialization. Lock wire names with explicit JsonPropertyName.
 
     [<CLIMutable>]
     type Message = {
@@ -66,13 +64,18 @@ module LlmClient =
         [<JsonPropertyName("instruction")>] Instruction: string
     }
 
-    /// LLM-side recipe shape — strict JSON schema we ask Groq to return.
     [<CLIMutable>]
     type RecipeWire = {
         [<JsonPropertyName("title")>]           Title: string
         [<JsonPropertyName("prepTimeMinutes")>] PrepTimeMinutes: int
         [<JsonPropertyName("steps")>]           Steps: RecipeStepWire array
         [<JsonPropertyName("tags")>]            Tags: string array
+        [<JsonPropertyName("imagePromptHint")>] ImagePromptHint: string
+    }
+
+    [<CLIMutable>]
+    type RecipeBundleWire = {
+        [<JsonPropertyName("recipes")>] Recipes: RecipeWire array
     }
 
     // ------------------------------------------------------------------
@@ -83,32 +86,55 @@ module LlmClient =
         let qty = sprintf "%g %s" item.Quantity item.Unit
         let expiry =
             match item.ExpiryDate with
-            | Some d -> sprintf ", lejár %s" (d.ToString("yyyy-MM-dd"))
+            | Some d -> sprintf ", expires %s" (d.ToString("yyyy-MM-dd"))
             | None -> ""
         sprintf "- %s (%s%s)" item.Name qty expiry
 
-    let buildPrompt (items: PantryItem list) : string =
+    /// Builds the prompt in the requested target language. Image hint is
+    /// always English so we can feed it straight to image-generation APIs.
+    let buildPrompt (lang: Lang) (items: PantryItem list) : string =
         let inventory =
             if List.isEmpty items
-            then "(üres kamra)"
+            then "(empty pantry)"
             else items |> List.map formatItem |> String.concat "\n"
+
+        let langInstruction, exampleTitles, exampleTags =
+            match lang with
+            | En ->
+                "Reply in English. Tone: warm, concise, like a friendly chef.",
+                "[\"Quick mushroom risotto\", \"Hearty egg pancakes\", \"Creative parmesan croquettes\"]",
+                "[\"quick\",\"vegetarian\"]"
+            | Hu ->
+                "Válaszolj magyarul. Hangulat: barátságos, lényegre törő séf-stílus.",
+                "[\"Gyors gomba rizottó\", \"Laktató tojásos palacsinta\", \"Kreatív parmezános krokett\"]",
+                "[\"gyors\",\"vegetariánus\"]"
+
         let lines = [
-            "Te egy magyar séf vagy. A felhasználónak ezek az alapanyagai vannak a kamrájában:"
+            "You are a creative chef. The user has these ingredients in their pantry:"
             inventory
             ""
-            "Adj egy gyors, max 30 perces, ízletes receptet, ami kihasználja a meglévő alapanyagokat (különösen a hamarosan lejárókat)."
-            "Magyarul válaszolj. Ha kell, használj alap fűszereket (só, bors, olaj) — feltételezzük, hogy ezek mindenkinél megvannak."
+            "Suggest EXACTLY 3 different recipes that use these ingredients (especially the soon-to-expire ones). Make them noticeably different in style — e.g., quick / hearty / creative."
+            "Assume basic seasonings (salt, pepper, oil, water) are always available."
+            langInstruction
             ""
-            "SZIGORÚAN ebben a JSON formátumban válaszolj, MÁS SZÖVEG NÉLKÜL:"
+            "RESPOND STRICTLY in this JSON format, NOTHING ELSE:"
             "{"
-            "  \"title\": \"Recept neve\","
-            "  \"prepTimeMinutes\": 25,"
-            "  \"steps\": ["
-            "    {\"stepNumber\": 1, \"instruction\": \"Első lépés...\"},"
-            "    {\"stepNumber\": 2, \"instruction\": \"Második lépés...\"}"
-            "  ],"
-            "  \"tags\": [\"gyors\", \"vegetariánus\"]"
+            "  \"recipes\": ["
+            "    {"
+            "      \"title\": \"Recipe name\","
+            "      \"prepTimeMinutes\": 25,"
+            "      \"steps\": ["
+            "        {\"stepNumber\": 1, \"instruction\": \"Step one…\"},"
+            "        {\"stepNumber\": 2, \"instruction\": \"Step two…\"}"
+            "      ],"
+            sprintf "      \"tags\": %s," exampleTags
+            "      \"imagePromptHint\": \"short ENGLISH phrase describing the finished dish on a plate, suitable for an image generator\""
+            "    }"
+            "  ]"
             "}"
+            ""
+            sprintf "Example titles you might pick (do NOT copy literally): %s" exampleTitles
+            "ALL imagePromptHint values must be in ENGLISH regardless of the rest of the response language, since they go to an image-generation API."
         ]
         String.concat "\n" lines
 
@@ -116,39 +142,50 @@ module LlmClient =
     // Public API
     // ------------------------------------------------------------------
 
-    /// Generate a recipe from a pantry. Returns Ok recipe / Error human-readable message.
-    /// The HttpClient is supplied by DI (IHttpClientFactory) so we don't leak sockets.
-    let generateRecipeAsync (httpClient: HttpClient) (items: PantryItem list)
-                            : Task<Result<Recipe, string>> =
+    /// Generate up to 3 recipe alternatives from a pantry. Returns Ok bundle
+    /// or Error human-readable message in the requested language.
+    let generateRecipesAsync (httpClient: HttpClient) (lang: Lang) (items: PantryItem list)
+                             : Task<Result<RecipeBundle, string>> =
         task {
             let apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY")
             if String.IsNullOrWhiteSpace(apiKey) then
-                return Error "Hiányzó GROQ_API_KEY környezeti változó. Állítsd be a .env fájlban."
+                let msg =
+                    match lang with
+                    | En -> "Missing GROQ_API_KEY environment variable. Set it in the .env file."
+                    | Hu -> "Hiányzó GROQ_API_KEY környezeti változó. Állítsd be a .env fájlban."
+                return Error msg
             else
                 try
-                    let prompt = buildPrompt items
+                    let prompt = buildPrompt lang items
+                    let systemMsg =
+                        match lang with
+                        | En -> "You return STRICTLY valid JSON, never plain text. Reply in English."
+                        | Hu -> "You return STRICTLY valid JSON, never plain text. Reply in Hungarian (magyar)."
                     let req = {
                         Model = model
-                        Temperature = 0.7
+                        Temperature = 0.85
                         ResponseFormat = { Type = "json_object" }
                         Messages = [|
-                            { Role = "system"
-                              Content = "You return STRICTLY valid JSON, never plain text. The user is Hungarian; reply in Hungarian." }
-                            { Role = "user"; Content = prompt }
+                            { Role = "system"; Content = systemMsg }
+                            { Role = "user";   Content = prompt }
                         |]
                     }
                     use msg = new HttpRequestMessage(HttpMethod.Post, endpoint)
                     msg.Headers.Authorization <- AuthenticationHeaderValue("Bearer", apiKey)
                     msg.Content <- JsonContent.Create(req, options = jsonOpts)
 
-                    use cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30.0))
+                    use cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(45.0))
                     use! resp = httpClient.SendAsync(msg, cts.Token)
 
                     if not resp.IsSuccessStatusCode then
                         let! body = resp.Content.ReadAsStringAsync()
                         let snippet =
                             if body.Length > 240 then body.Substring(0, 240) + "..." else body
-                        return Error (sprintf "Groq API hiba (%d): %s" (int resp.StatusCode) snippet)
+                        let prefix =
+                            match lang with
+                            | En -> sprintf "Groq API error (%d)" (int resp.StatusCode)
+                            | Hu -> sprintf "Groq API hiba (%d)" (int resp.StatusCode)
+                        return Error (sprintf "%s: %s" prefix snippet)
                     else
                         let! completion = resp.Content.ReadFromJsonAsync<CompletionResponse>(jsonOpts)
                         let content =
@@ -156,31 +193,61 @@ module LlmClient =
                             |> Array.tryHead
                             |> Option.map (fun c -> c.Message.Content)
                             |> Option.defaultValue ""
-
                         if String.IsNullOrWhiteSpace(content) then
-                            return Error "A Groq üres választ adott."
+                            let m =
+                                match lang with
+                                | En -> "Groq returned an empty response."
+                                | Hu -> "A Groq üres választ adott."
+                            return Error m
                         else
                             try
-                                let wire = JsonSerializer.Deserialize<RecipeWire>(content, jsonOpts)
-                                let recipe : Recipe = {
-                                    Title = wire.Title
-                                    PrepTimeMinutes = wire.PrepTimeMinutes
-                                    Steps =
-                                        (if isNull wire.Steps then Array.empty else wire.Steps)
-                                        |> Array.map (fun s ->
-                                            ({ StepNumber = s.StepNumber
-                                               Instruction = s.Instruction } : RecipeStep))
-                                        |> List.ofArray
-                                    Tags =
-                                        (if isNull wire.Tags then Array.empty else wire.Tags)
-                                        |> List.ofArray
-                                }
-                                return Ok recipe
+                                let wire = JsonSerializer.Deserialize<RecipeBundleWire>(content, jsonOpts)
+                                let convertWire (r: RecipeWire) : Recipe =
+                                    {
+                                        Title = r.Title
+                                        PrepTimeMinutes = r.PrepTimeMinutes
+                                        Steps =
+                                            (if isNull r.Steps then Array.empty else r.Steps)
+                                            |> Array.map (fun s ->
+                                                ({ StepNumber = s.StepNumber
+                                                   Instruction = s.Instruction } : RecipeStep))
+                                            |> List.ofArray
+                                        Tags =
+                                            (if isNull r.Tags then Array.empty else r.Tags)
+                                            |> List.ofArray
+                                        ImagePromptHint =
+                                            if isNull r.ImagePromptHint then r.Title
+                                            else r.ImagePromptHint
+                                    }
+                                let recipes : Recipe list =
+                                    (if isNull wire.Recipes then Array.empty else wire.Recipes)
+                                    |> Array.map convertWire
+                                    |> List.ofArray
+                                if List.isEmpty recipes then
+                                    let m =
+                                        match lang with
+                                        | En -> "The model returned no recipes — try again."
+                                        | Hu -> "A modell nem adott vissza receptet — próbáld újra."
+                                    return Error m
+                                else
+                                    return Ok ({ Recipes = recipes } : RecipeBundle)
                             with ex ->
-                                return Error (sprintf "Nem sikerült feldolgozni a recept JSON-t: %s" ex.Message)
+                                let m =
+                                    match lang with
+                                    | En -> sprintf "Could not parse the recipe JSON: %s" ex.Message
+                                    | Hu -> sprintf "Nem sikerült feldolgozni a recept JSON-t: %s" ex.Message
+                                return Error m
                 with
                 | :? TaskCanceledException ->
-                    return Error "Időtúllépés: a Groq nem válaszolt 30 másodpercen belül."
+                    let m =
+                        match lang with
+                        | En -> "Timeout: Groq did not respond within 45 seconds."
+                        | Hu -> "Időtúllépés: a Groq nem válaszolt 45 másodpercen belül."
+                    return Error m
                 | ex ->
-                    return Error (sprintf "Hálózati hiba: %s" ex.Message)
+                    let m =
+                        match lang with
+                        | En -> sprintf "Network error: %s" ex.Message
+                        | Hu -> sprintf "Hálózati hiba: %s" ex.Message
+                    return Error m
         }

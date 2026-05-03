@@ -110,14 +110,36 @@ module Server =
         }
 
     [<Rpc>]
-    let GenerateRecipe () : Async<Result<Recipe, string>> =
+    let DeleteAll () : Async<int> =
+        async {
+            let userId = UserContext.currentUserId ()
+            return Database.deleteAll userId
+        }
+
+    /// Returns the configured Pollinations.ai token (if any) so the client can
+    /// append it to image URLs. The token is set via the POLLINATIONS_TOKEN env
+    /// var and never embedded in the source. Empty string when not configured —
+    /// in that case the client uses the free public tier.
+    [<Rpc>]
+    let GetImageToken () : Async<string> =
+        async {
+            let t = Environment.GetEnvironmentVariable("POLLINATIONS_TOKEN")
+            return if isNull t then "" else t
+        }
+
+    [<Rpc>]
+    let GenerateRecipes (lang: Lang) : Async<Result<RecipeBundle, string>> =
         async {
             let userId = UserContext.currentUserId ()
             let items = Database.getItems userId
             if List.isEmpty items then
-                return Error "A kamra üres — adj hozzá legalább egy alapanyagot először."
+                let msg =
+                    match lang with
+                    | En -> "Pantry is empty — add at least one ingredient first."
+                    | Hu -> "A kamra üres — adj hozzá legalább egy alapanyagot először."
+                return Error msg
             else
                 let httpClient = UserContext.getHttpClient ()
-                let! r = LlmClient.generateRecipeAsync httpClient items |> Async.AwaitTask
+                let! r = LlmClient.generateRecipesAsync httpClient lang items |> Async.AwaitTask
                 return r
         }

@@ -5,8 +5,6 @@ open WebSharper
 
 /// A single ingredient record in a user's pantry. Persisted to SQLite, also serialized
 /// over the WebSharper RPC boundary, so the type must round-trip safely.
-/// `[<CLIMutable>]` adds a parameterless constructor so Dapper can materialize rows
-/// via property setters (and apply registered Option type handlers).
 [<JavaScript; CLIMutable>]
 type PantryItem = {
     Id: int
@@ -34,11 +32,21 @@ type RecipeStep = {
     Instruction: string
 }
 
-/// Final structured recipe returned to the client.
+/// A single recipe variant. The `ImagePromptHint` is a short English phrase
+/// suitable for handing to an image generator — kept separate from the
+/// localized `Title` so we never feed Hungarian recipe names into a
+/// stock-photo / diffusion service.
 [<JavaScript; CLIMutable>]
 type Recipe = {
     Title: string
     PrepTimeMinutes: int
     Steps: RecipeStep list
     Tags: string list
+    ImagePromptHint: string
+}
+
+/// Bundle of alternative recipes the LLM proposes for a given pantry.
+[<JavaScript; CLIMutable>]
+type RecipeBundle = {
+    Recipes: Recipe list
 }

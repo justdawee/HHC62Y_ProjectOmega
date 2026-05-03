@@ -175,3 +175,10 @@ module Database =
                Quantity = item.Quantity
                Unit = item.Unit
                ExpiryDate = item.ExpiryDate |})
+
+    /// Wipe every ingredient owned by a user. Returns the row count deleted.
+    let deleteAll (userId: string) : int =
+        use conn = openConnection ()
+        conn.Execute(
+            "DELETE FROM Ingredients WHERE UserId = @UserId",
+            {| UserId = userId |})

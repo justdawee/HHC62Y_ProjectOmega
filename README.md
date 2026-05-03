@@ -5,10 +5,27 @@
 [![CI](https://github.com/justdawee/HHC62Y_ProjectOmega/actions/workflows/docker-build.yml/badge.svg)](https://github.com/justdawee/HHC62Y_ProjectOmega/actions/workflows/docker-build.yml)
 
 SmartPantry helps you stop throwing food away. Track what's in your pantry,
-flag what's about to expire, and let an LLM (Groq + Llama 3.3 70B) suggest a
-quick recipe from the ingredients you actually have.
+flag what's about to expire, and let Groq's Llama 3.3 70B propose **three
+distinct recipe variations** (quick / hearty / creative) from the ingredients
+you actually have on hand.
 
-![SmartPantry — desktop dark mode](screenshots/10-pantry-with-badges-fixed.png)
+![SmartPantry — v2 dark mode with recipe](screenshots/28-v2-hungarian-recipe.png)
+
+## What's new in v2
+
+- **Bilingual UI** — defaults to English, one-tap toggle to Hungarian
+  (`EN`/`HU` button in the header). The language flows all the way down to
+  the LLM prompt, so recipes come back in the chosen language.
+- **Layout refresh** to match the polished reference design: header pill
+  showing live ingredient count, two equal columns, compact pill-shaped
+  add-row, "Clear all" pantry reset, dedicated AI Chef panel.
+- **Three recipe alternatives per generation**, surfaced as Quick / Hearty /
+  Creative tabs the user can flip between without re-querying Groq.
+- **Recipe imagery** — a fallback procedural gradient + emoji decoration is
+  always shown; if `POLLINATIONS_TOKEN` is configured and Pollinations.ai
+  serves a valid response, that AI-generated photo fades in over the top.
+- **Ingredient icons** — emoji lookup over 30+ common ingredients (English &
+  Hungarian names) with a generic 🥗 fallback.
 
 ## Why this exists
 
