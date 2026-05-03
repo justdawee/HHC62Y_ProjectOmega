@@ -116,17 +116,6 @@ module Server =
             return Database.deleteAll userId
         }
 
-    /// Returns the configured Pollinations.ai token (if any) so the client can
-    /// append it to image URLs. The token is set via the POLLINATIONS_TOKEN env
-    /// var and never embedded in the source. Empty string when not configured —
-    /// in that case the client uses the free public tier.
-    [<Rpc>]
-    let GetImageToken () : Async<string> =
-        async {
-            let t = Environment.GetEnvironmentVariable("POLLINATIONS_TOKEN")
-            return if isNull t then "" else t
-        }
-
     [<Rpc>]
     let GenerateRecipes (lang: Lang) : Async<Result<RecipeBundle, string>> =
         async {
@@ -140,6 +129,79 @@ module Server =
                 return Error msg
             else
                 let httpClient = UserContext.getHttpClient ()
-                let! r = LlmClient.generateRecipesAsync httpClient lang items |> Async.AwaitTask
-                return r
+
+                // 1) Harvest real-world inspiration recipes from TheMealDB
+                //    (filtered by 1–3 of the user's English-mapped ingredients).
+                let! inspirations =
+                    MealDbClient.collectInspirations httpClient items
+                    |> Async.AwaitTask
+                let inspirationTitles =
+                    inspirations |> List.map (fun i -> i.Title)
+
+                // 2) Hand the inspirations to Groq as style references.
+                let! groqResult =
+                    LlmClient.generateRecipesAsync httpClient lang inspirationTitles items
+                    |> Async.AwaitTask
+
+                match groqResult with
+                | Error e -> return Error e
+                | Ok bundle ->
+                    // 3) For each Groq-generated recipe, resolve a real
+                    //    image: prefer an exact match against the
+                    //    inspiration list (case-insensitive); else search
+                    //    TheMealDB by the recipe title.
+                    let inspirationMap =
+                        inspirations
+                        |> List.map (fun i -> i.Title.ToLower(), i.ImageUrl)
+                        |> Map.ofList
+
+                    let resolveImage (recipe: Recipe) : System.Threading.Tasks.Task<string> =
+                        task {
+                            // Try exact lower-case match against inspiration list (works
+                            // when the LLM literally riffed on a real recipe name).
+                            let titleKey = recipe.Title.ToLower()
+                            match Map.tryFind titleKey inspirationMap with
+                            | Some url when not (System.String.IsNullOrEmpty url) ->
+                                return url
+                            | _ ->
+                                // Search TheMealDB by the ENGLISH ImagePromptHint (e.g.
+                                // "creamy mushroom risotto") — the localized recipe
+                                // title may be Hungarian and would never match.
+                                let queryHint =
+                                    if System.String.IsNullOrWhiteSpace recipe.ImagePromptHint
+                                    then recipe.Title
+                                    else recipe.ImagePromptHint
+                                let! hitByHint =
+                                    MealDbClient.searchByName httpClient queryHint
+                                match hitByHint with
+                                | Some h when not (System.String.IsNullOrEmpty h.ImageUrl) ->
+                                    return h.ImageUrl
+                                | _ ->
+                                    // Final fallback: if still no hit, try the title
+                                    // verbatim — covers the EN-mode case where the
+                                    // hint and title are both English.
+                                    let! hitByTitle =
+                                        MealDbClient.searchByName httpClient recipe.Title
+                                    return
+                                        match hitByTitle with
+                                        | Some h -> h.ImageUrl
+                                        | None -> ""
+                        }
+
+                    // Run image lookups in parallel.
+                    let lookupTasks =
+                        bundle.Recipes
+                        |> List.map (fun r -> resolveImage r)
+                        |> Array.ofList
+                    let! urls =
+                        System.Threading.Tasks.Task.WhenAll(lookupTasks)
+                        |> Async.AwaitTask
+
+                    let enrichedRecipes =
+                        bundle.Recipes
+                        |> List.mapi (fun i r ->
+                            let resolved = if i < urls.Length then urls.[i] else ""
+                            { r with ImageUrl = resolved })
+
+                    return Ok ({ Recipes = enrichedRecipes } : RecipeBundle)
         }

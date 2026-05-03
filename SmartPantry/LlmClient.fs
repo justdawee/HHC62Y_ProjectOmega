@@ -92,7 +92,9 @@ module LlmClient =
 
     /// Builds the prompt in the requested target language. Image hint is
     /// always English so we can feed it straight to image-generation APIs.
-    let buildPrompt (lang: Lang) (items: PantryItem list) : string =
+    /// `inspirations` are real recipe titles (English) we lifted from
+    /// TheMealDB to nudge Groq toward authentic, well-formed recipes.
+    let buildPrompt (lang: Lang) (inspirations: string list) (items: PantryItem list) : string =
         let inventory =
             if List.isEmpty items
             then "(empty pantry)"
@@ -118,33 +120,42 @@ module LlmClient =
                 "Keverj össze 200 g lisztet, 1 tojást, 100 ml tejet és egy csipet sót.",
                 "[\"gyors\",\"vegetáriánus\"]"
 
+        let inspirationBlock =
+            if List.isEmpty inspirations then []
+            else [
+                ""
+                "INSPIRATION — real-world recipes from a culinary database that use similar ingredients. Use them as STYLE references; do NOT copy a title verbatim, riff on them:"
+                inspirations |> List.map (sprintf "  • %s") |> String.concat "\n"
+            ]
+
         let lines = [
-            sprintf "TARGET LANGUAGE: %s. %s" langName langDirective
-            ""
-            "You are a creative chef. The user has these ingredients in their pantry:"
-            inventory
-            ""
-            "TASK: Suggest EXACTLY 3 distinct recipes using these ingredients (especially the ones expiring soon)."
-            "Make them noticeably different in style: recipe #1 = QUICK & light, #2 = HEARTY & comforting, #3 = CREATIVE & playful."
-            "Assume basic seasonings (salt, pepper, oil, water) are always available."
-            ""
-            "RESPOND STRICTLY in this JSON format, NOTHING ELSE — no Markdown, no commentary:"
-            "{"
-            "  \"recipes\": ["
-            "    {"
-            sprintf "      \"title\": \"%s\"," exampleTitle
-            "      \"prepTimeMinutes\": 25,"
-            "      \"steps\": ["
-            sprintf "        {\"stepNumber\": 1, \"instruction\": \"%s\"}," exampleStep
-            "        {\"stepNumber\": 2, \"instruction\": \"…\"}"
-            "      ],"
-            sprintf "      \"tags\": %s," exampleTags
-            "      \"imagePromptHint\": \"short ENGLISH phrase (always English!) describing the finished dish on a plate\""
-            "    }, ... two more recipes ..."
-            "  ]"
-            "}"
-            ""
-            sprintf "REMINDER: title, instruction, tags MUST be in %s. Only imagePromptHint is in ENGLISH (it feeds an image generator)." langName
+            yield sprintf "TARGET LANGUAGE: %s. %s" langName langDirective
+            yield ""
+            yield "You are a creative chef. The user has these ingredients in their pantry:"
+            yield inventory
+            yield! inspirationBlock
+            yield ""
+            yield "TASK: Suggest EXACTLY 3 distinct recipes using the user's pantry ingredients (especially the ones expiring soon)."
+            yield "Make them noticeably different in style: recipe #1 = QUICK & light, #2 = HEARTY & comforting, #3 = CREATIVE & playful."
+            yield "Assume basic seasonings (salt, pepper, oil, water) are always available."
+            yield ""
+            yield "RESPOND STRICTLY in this JSON format, NOTHING ELSE — no Markdown, no commentary:"
+            yield "{"
+            yield "  \"recipes\": ["
+            yield "    {"
+            yield sprintf "      \"title\": \"%s\"," exampleTitle
+            yield "      \"prepTimeMinutes\": 25,"
+            yield "      \"steps\": ["
+            yield sprintf "        {\"stepNumber\": 1, \"instruction\": \"%s\"}," exampleStep
+            yield "        {\"stepNumber\": 2, \"instruction\": \"…\"}"
+            yield "      ],"
+            yield sprintf "      \"tags\": %s," exampleTags
+            yield "      \"imagePromptHint\": \"short ENGLISH phrase (always English!) describing the finished dish on a plate\""
+            yield "    }, ... two more recipes ..."
+            yield "  ]"
+            yield "}"
+            yield ""
+            yield sprintf "REMINDER: title, instruction, tags MUST be in %s. Only imagePromptHint is in ENGLISH (it feeds an image generator)." langName
         ]
         String.concat "\n" lines
 
@@ -153,8 +164,11 @@ module LlmClient =
     // ------------------------------------------------------------------
 
     /// Generate up to 3 recipe alternatives from a pantry. Returns Ok bundle
-    /// or Error human-readable message in the requested language.
-    let generateRecipesAsync (httpClient: HttpClient) (lang: Lang) (items: PantryItem list)
+    /// or Error human-readable message in the requested language. Inspirations
+    /// are real-world recipe titles harvested from TheMealDB to nudge Groq
+    /// toward authentic cuisine; pass an empty list for no inspiration.
+    let generateRecipesAsync (httpClient: HttpClient) (lang: Lang)
+                             (inspirations: string list) (items: PantryItem list)
                              : Task<Result<RecipeBundle, string>> =
         task {
             let apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY")
@@ -166,7 +180,7 @@ module LlmClient =
                 return Error msg
             else
                 try
-                    let prompt = buildPrompt lang items
+                    let prompt = buildPrompt lang inspirations items
                     let systemMsg =
                         match lang with
                         | En ->
@@ -230,6 +244,8 @@ module LlmClient =
                                         ImagePromptHint =
                                             if isNull r.ImagePromptHint then r.Title
                                             else r.ImagePromptHint
+                                        // Server fills this in afterwards via TheMealDB lookup.
+                                        ImageUrl = ""
                                     }
                                 let recipes : Recipe list =
                                     (if isNull wire.Recipes then Array.empty else wire.Recipes)

@@ -53,11 +53,10 @@ module Client =
         | None -> "🥗"
 
     // ------------------------------------------------------------------
-    // Pollinations.ai image URL
+    // Image rendering: we now use TheMealDB image URLs resolved server-side
+    // and stored in Recipe.ImageUrl. When that's empty we render only the
+    // procedural fallback.
     // ------------------------------------------------------------------
-
-    let private encodeURI (s: string) : string =
-        JS.Inline<string -> string>("encodeURIComponent")(s)
 
     let private titleHash (title: string) : int =
         let chars = title.ToCharArray()
@@ -65,17 +64,6 @@ module Client =
         for i in 0 .. chars.Length - 1 do
             h <- (h * 31 + int chars.[i]) &&& 0x7fffffff
         h
-
-    let private pollinationsUrl (token: string) (recipe: Recipe) : string =
-        let prompt =
-            recipe.ImagePromptHint
-            + ", food photography, plated dish, soft natural light, top-down 45deg, vibrant colors, michelin presentation"
-        let seed = (titleHash recipe.Title) % 100000
-        let baseUrl =
-            sprintf "https://image.pollinations.ai/prompt/%s?width=800&height=450&seed=%d&nologo=true&model=flux"
-                    (encodeURI prompt) seed
-        if String.IsNullOrEmpty token then baseUrl
-        else baseUrl + "&token=" + encodeURI token
 
     // ------------------------------------------------------------------
     // Persistence
@@ -212,7 +200,6 @@ module Client =
 
     let private renderRecipe
         (lang: Lang)
-        (token: string)
         (state: Var<RecipeState>)
         (bundle: RecipeBundle)
         (selectedIdx: int)
@@ -235,17 +222,21 @@ module Client =
                     hueA hueB
         let foodEmoji = iconFor recipe.Title
 
-        let imgUrl = pollinationsUrl token recipe
-
+        // The fallback gradient + emoji is always rendered. If the recipe
+        // has an ImageUrl (from TheMealDB), it fades in over the fallback;
+        // on an error the img hides itself and the fallback stays visible.
         let imgEl =
-            Doc.Element "img" [
-                Attr.Create "src" imgUrl
-                Attr.Create "alt" recipe.Title
-                Attr.Create "loading" "lazy"
-                Attr.Create "class" "absolute inset-0 z-20 w-full h-full object-cover opacity-0 transition-opacity duration-500"
-                on.load (fun el _ -> el.SetAttribute("style", "opacity:1"))
-                on.error (fun el _ -> el.SetAttribute("style", "display:none"))
-            ] []
+            if String.IsNullOrEmpty recipe.ImageUrl then Doc.Empty
+            else
+                Doc.Element "img" [
+                    Attr.Create "src" recipe.ImageUrl
+                    Attr.Create "alt" recipe.Title
+                    Attr.Create "loading" "lazy"
+                    Attr.Create "class" "absolute inset-0 z-20 w-full h-full object-cover opacity-0 transition-opacity duration-500"
+                    on.load (fun el _ -> el.SetAttribute("style", "opacity:1"))
+                    on.error (fun el _ -> el.SetAttribute("style", "display:none"))
+                ] []
+                :> Doc
 
         let fallbackEl =
             Doc.Element "div" [
@@ -284,7 +275,7 @@ module Client =
                 .RecipeBadge(s.RecipeLabel)
                 .RecipeTitle(recipe.Title)
                 .PrepTime(prepTimeText)
-                .RecipeImage([ (fallbackEl :> Doc); (imgEl :> Doc) ])
+                .RecipeImage([ (fallbackEl :> Doc); imgEl ])
                 .VariantNav([ nav ])
                 .Tags(tagDocs)
                 .Steps(stepDocs)
@@ -466,13 +457,10 @@ module Client =
         // ---- lang switch toast
         let toastVisible = Var.Create false
 
-        // ---- initial pantry load + image-API token fetch
-        let imageToken = Var.Create ""
+        // ---- initial pantry load
         async {
             let! initial = Server.GetItems ()
             items.Set initial
-            let! tok = Server.GetImageToken ()
-            imageToken.Value <- tok
         } |> Async.StartImmediate
 
         // ---- derived views
@@ -665,9 +653,8 @@ module Client =
 
         // ---- recipe area
         let recipeAreaDoc =
-            View.Map3 (fun st l tok -> (st, l, tok))
-                recipeState.View lang.View imageToken.View
-            |> View.Map (fun (st, l, tok) ->
+            View.Map2 (fun st l -> (st, l)) recipeState.View lang.View
+            |> View.Map (fun (st, l) ->
                 let s = Strings.table l
                 match st with
                 | NotRequested ->
@@ -688,7 +675,7 @@ module Client =
                         .OnCook(fun _ -> cookNow ())
                         .Doc()
                 | Loaded (bundle, idx) ->
-                    renderRecipe l tok recipeState bundle idx)
+                    renderRecipe l recipeState bundle idx)
             |> Doc.EmbedView
 
         // ---- string slots

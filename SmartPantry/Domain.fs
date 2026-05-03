@@ -32,10 +32,12 @@ type RecipeStep = {
     Instruction: string
 }
 
-/// A single recipe variant. The `ImagePromptHint` is a short English phrase
-/// suitable for handing to an image generator — kept separate from the
-/// localized `Title` so we never feed Hungarian recipe names into a
-/// stock-photo / diffusion service.
+/// A single recipe variant.
+/// - `ImagePromptHint` is a short English phrase used as a fallback when we
+///   could not match the recipe to a TheMealDB entry.
+/// - `ImageUrl` is the photo URL the server resolved (typically TheMealDB).
+///   Empty when no match was found — the client then renders a procedural
+///   gradient + emoji decoration.
 [<JavaScript; CLIMutable>]
 type Recipe = {
     Title: string
@@ -43,6 +45,7 @@ type Recipe = {
     Steps: RecipeStep list
     Tags: string list
     ImagePromptHint: string
+    ImageUrl: string
 }
 
 /// Bundle of alternative recipes the LLM proposes for a given pantry.

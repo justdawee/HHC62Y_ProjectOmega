@@ -21,9 +21,14 @@ you actually have on hand.
   add-row, "Clear all" pantry reset, dedicated AI Chef panel.
 - **Three recipe alternatives per generation**, surfaced as Quick / Hearty /
   Creative tabs the user can flip between without re-querying Groq.
-- **Recipe imagery** — a fallback procedural gradient + emoji decoration is
-  always shown; if `POLLINATIONS_TOKEN` is configured and Pollinations.ai
-  serves a valid response, that AI-generated photo fades in over the top.
+- **Recipe imagery** — server-side hybrid: TheMealDB filters by the user's
+  ingredients to harvest 5–8 real-world recipe titles which are fed to Groq
+  as inspiration; after Groq generates the 3 variants, each variant's
+  English `imagePromptHint` is searched on TheMealDB and the first matching
+  recipe's photo URL is attached. A procedural gradient + emoji fallback
+  always renders behind the photo so the card never looks broken when no
+  match is found. Pollinations.ai removed (their endpoint moved behind a
+  Cloudflare Turnstile challenge).
 - **Ingredient icons** — emoji lookup over 30+ common ingredients (English &
   Hungarian names) with a generic 🥗 fallback.
 

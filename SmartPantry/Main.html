@@ -142,8 +142,10 @@
               aria-label="Quantity"
             />
 
-            <!-- Custom unit dropdown -->
-            <div ws-replace="UnitDropdown" class="relative"></div>
+            <!-- Custom unit dropdown — wrapper must self-stretch in the
+                 flex parent and lay its trigger out as a stretched flex item
+                 so the pill matches the height of the qty input + add button. -->
+            <div ws-replace="UnitDropdown" class="relative self-stretch flex items-stretch"></div>
 
             <button
               type="submit"
@@ -357,16 +359,20 @@
   aria-label="${DotAria}"
 ></button>
 
-<!-- Custom unit dropdown trigger pill -->
+<!-- Custom unit dropdown trigger pill. `flex items-center justify-center`
+     centres the label + chevron vertically AND horizontally; explicit
+     min-width keeps "pcs" from getting truncated; explicit min-height
+     keeps the pill the same height as siblings even if the wrapper's
+     stretch sizing fails. -->
 <button
   ws-template="UnitTrigger"
   ws-onclick="OnUnitToggle"
   type="button"
-  class="ring-soft bg-white/40 dark:bg-white/5 hover:bg-white/55 dark:hover:bg-white/10 rounded-full px-3 text-sm border-0 outline-none cursor-pointer h-full inline-flex items-center gap-1.5 transition"
+  class="ring-soft bg-white/40 dark:bg-white/5 hover:bg-white/55 dark:hover:bg-white/10 rounded-full px-3 text-sm border-0 outline-none cursor-pointer flex items-center justify-center gap-1.5 transition min-w-[3.5rem] min-h-[2.25rem] whitespace-nowrap leading-none"
   aria-label="Choose unit"
 >
   <span class="font-medium tabular-nums">${UnitLabel}</span>
-  <svg viewBox="0 0 24 24" class="w-3 h-3 transition-transform" ws-attr="ChevronAttrs" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <svg viewBox="0 0 24 24" class="w-3 h-3 transition-transform shrink-0" ws-attr="ChevronAttrs" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M6 9l6 6 6-6"></path>
   </svg>
 </button>
