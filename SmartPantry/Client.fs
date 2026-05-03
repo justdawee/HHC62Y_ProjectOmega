@@ -759,13 +759,14 @@ module Client =
                 .FormError([ formErrorDoc ])
                 .PantryFootNote(View.Const "")
                 .AiChefLabel(strView (fun s -> s.AiChef))
-                .PoweredByLabel(strView (fun s -> s.PoweredBy))
+                .ChefTaglineLabel(strView (fun s -> s.ChefTagline))
                 .GenerateLabel(strView (fun s -> s.GenerateRecipe))
                 .IngredientsBadgeLabel(strView (fun s -> s.IngredientsCount))
                 .CookBtnAttrs(cookDisabledAttr)
                 .OnCook(fun _ -> cookNow ())
                 .RecipeArea([ recipeAreaDoc ])
-                .FooterText(strView (fun s -> s.FooterText))
+                .FooterPrefix(strView (fun s -> s.FooterPrefix))
+                .FooterAuthor(strView (fun s -> s.FooterAuthor))
                 .Doc()
 
         Doc.Concat [ appDoc; toastDoc ]

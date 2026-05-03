@@ -40,10 +40,17 @@
 
       <!-- Logo + tagline -->
       <div class="flex items-center gap-3 min-w-0">
-        <span aria-hidden="true" class="grid place-items-center w-10 h-10 rounded-2xl glass-inset shrink-0">
-          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2c2.5 3 4 5 4 8a4 4 0 1 1-8 0c0-3 1.5-5 4-8z"></path>
-            <path d="M5 22c0-3 3-6 7-6s7 3 7 6"></path>
+        <span aria-hidden="true" class="grid place-items-center w-10 h-10 rounded-2xl logo-tile shrink-0">
+          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="leafStroke" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%"  stop-color="#c3a4ff"/>
+                <stop offset="50%" stop-color="#ffc89c"/>
+                <stop offset="100%" stop-color="#9adfe8"/>
+              </linearGradient>
+            </defs>
+            <path d="M7 17 C7 9 11 4 17 5 C17 11 13 18 7 17 Z" stroke="url(#leafStroke)"></path>
+            <path d="M7 17 C9 14 12 11 16 8" stroke="url(#leafStroke)"></path>
           </svg>
         </span>
         <div class="leading-tight min-w-0">
@@ -108,8 +115,10 @@
           >${ClearAllLabel}</button>
         </header>
 
-        <!-- Add row: pill-shaped composite input + autocomplete dropdown -->
-        <form ws-onsubmit="OnAdd" class="mb-5 relative">
+        <!-- Add row: pill-shaped composite input + autocomplete dropdown.
+             .add-row-form gives a fresh stacking context above the pantry
+             grid so the floating panels stay clickable. -->
+        <form ws-onsubmit="OnAdd" class="add-row-form mb-5 relative">
           <div class="add-row flex items-stretch gap-1.5 glass-inset rounded-full p-1.5 pl-2 transition-all duration-200">
             <span aria-hidden="true" class="grid place-items-center w-7 shrink-0 text-slate-500 dark:text-slate-400 transition">
               <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -164,9 +173,11 @@
           <div ws-replace="FormError" class="mt-2 px-3"></div>
         </form>
 
-        <!-- Empty state OR items grid -->
+        <!-- Empty state OR items grid. The pantry-grid class pins the
+             card area to a low stacking-context so hover transforms can't
+             leak above the add-row dropdowns. -->
         <div ws-replace="EmptyState"></div>
-        <div ws-replace="Items" class="grid sm:grid-cols-2 gap-2.5 sm:gap-3"></div>
+        <div ws-replace="Items" class="pantry-grid grid sm:grid-cols-2 gap-2.5 sm:gap-3"></div>
 
         <p class="mt-5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">${PantryFootNote}</p>
       </section>
@@ -178,7 +189,7 @@
             ${AiChefLabel}
             <span aria-hidden="true" class="text-fuchsia-400 dark:text-fuchsia-300 -translate-y-0.5">✦</span>
           </h2>
-          <span class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">${PoweredByLabel}</span>
+          <span class="text-xs sm:text-sm font-serif italic text-slate-500 dark:text-slate-400">${ChefTaglineLabel}</span>
         </header>
 
         <!-- Generate button row -->
@@ -206,7 +217,9 @@
   <!-- ============== Footer ============== -->
   <footer class="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 pb-6 text-center">
     <p class="text-[11px] sm:text-xs font-mono text-slate-500 dark:text-slate-400 tracking-wider">
-      ${FooterText}
+      ${FooterPrefix}
+      <a href="https://github.com/justdawee" target="_blank" rel="noopener noreferrer"
+         class="footer-author font-semibold hover:text-fuchsia-500 dark:hover:text-fuchsia-300 transition-colors">${FooterAuthor}</a>
     </p>
   </footer>
 </div>

@@ -83,7 +83,10 @@ module.exports = {
     }
   },
   plugins: [
-    require('@tailwindcss/forms'),
+    // strategy: 'class' — the plugin styles ONLY elements with the
+    // .form-input / .form-checkbox / etc. classes, instead of branding
+    // every native <input> with its blue focus ring + grey border.
+    require('@tailwindcss/forms')({ strategy: 'class' }),
     require('@tailwindcss/typography')
   ]
 };

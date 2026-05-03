@@ -44,7 +44,7 @@ module Strings =
 
         // ai chef section
         AiChef: string
-        PoweredBy: string
+        ChefTagline: string
         GenerateRecipe: string
         IngredientsCount: string
         NoRecipeYet: string
@@ -76,8 +76,10 @@ module Strings =
         ExpiresInDays: string
         FreshUntil: string
 
-        // footer
-        FooterText: string
+        // footer — composed from two pieces with a clickable link to the
+        // author's GitHub between them.
+        FooterPrefix: string
+        FooterAuthor: string
     }
 
     let en: T = {
@@ -108,7 +110,7 @@ module Strings =
         EmptyPantryHint = "Add an ingredient — then I can suggest a recipe."
 
         AiChef = "AI Chef"
-        PoweredBy = "powered by OpenAI"
+        ChefTagline = "turns ingredients into ideas"
         GenerateRecipe = "Generate Recipe with AI"
         IngredientsCount = "ingredients"
         NoRecipeYet = "No recipe yet"
@@ -137,7 +139,8 @@ module Strings =
         ExpiresInDays = "Expires in %d days"
         FreshUntil = "Fresh · %s"
 
-        FooterText = "SmartPantry · pantry, refined · built with glass & gradients"
+        FooterPrefix = "SmartPantry · pantry, refined · built with ♥ by"
+        FooterAuthor = "JustDawee"
     }
 
     let hu: T = {
@@ -168,7 +171,7 @@ module Strings =
         EmptyPantryHint = "Adj hozzá egy alapanyagot — utána javasolhatok hozzá receptet."
 
         AiChef = "AI Séf"
-        PoweredBy = "OpenAI segít"
+        ChefTagline = "alapanyagból ötlet"
         GenerateRecipe = "Receptet az AI-tól"
         IngredientsCount = "alapanyag"
         NoRecipeYet = "Még nincs recept"
@@ -197,7 +200,8 @@ module Strings =
         ExpiresInDays = "%d nap múlva lejár"
         FreshUntil = "Friss · %s"
 
-        FooterText = "SmartPantry · kamra, csiszolva · üveggel és gradiens-szel"
+        FooterPrefix = "SmartPantry · kamra, csiszolva · készítette ♥-ből"
+        FooterAuthor = "JustDawee"
     }
 
     /// Lookup table for the current language.
