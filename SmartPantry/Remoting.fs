@@ -125,7 +125,7 @@ module Server =
                 let msg =
                     match lang with
                     | En -> "Pantry is empty — add at least one ingredient first."
-                    | Hu -> "A kamra üres — adj hozzá legalább egy alapanyagot először."
+                    | Hu -> "A kamra üres — kérlek vegyél fel előbb legalább egy hozzávalót."
                 return Error msg
             else
                 // Server-side safeguard: refuse to spend tokens if NOTHING in
@@ -144,7 +144,7 @@ module Server =
                     let msg =
                         match lang with
                         | En -> "None of the pantry items look like real food. Add at least one recognisable ingredient before asking for a recipe."
-                        | Hu -> "Egyik kamra-elem sem tűnik valódi ételnek. Adj hozzá legalább egy felismerhető alapanyagot, mielőtt receptet kérsz."
+                        | Hu -> "Egyik tétel sem tűnik valódi ételnek. Receptkéréshez vegyél fel legalább egy felismerhető hozzávalót."
                     return Error msg
                 else
                 let httpClient = UserContext.getHttpClient ()

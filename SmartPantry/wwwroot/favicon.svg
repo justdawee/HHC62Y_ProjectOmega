@@ -1,14 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"  stop-color="#c084fc"/>
-      <stop offset="50%" stop-color="#fb923c"/>
-      <stop offset="100%" stop-color="#5eead4"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#3a2766"/>
+      <stop offset="100%" stop-color="#5e3d6c"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#c3a4ff"/>
+      <stop offset="50%" stop-color="#ffc89c"/>
+      <stop offset="100%" stop-color="#9adfe8"/>
     </linearGradient>
   </defs>
-  <rect width="32" height="32" rx="8" fill="#1a1430"/>
-  <g transform="translate(16 16)" stroke="url(#g)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M-5 -5 c2 -3 3 -4 5 -4 c2 0 3 1 5 4"/>
-    <path d="M-7 0 h14 l-2 8 h-10 z"/>
+  <rect width="32" height="32" rx="9" fill="url(#bg)"/>
+  <g fill="none" stroke="url(#leaf)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Same leaf path as the header logo, scaled into the 32x32 tile -->
+    <path d="M9 22 C9 11 14.5 5 22 6.5 C22 14 16.5 23.5 9 22 Z"/>
+    <path d="M9 22 C11.5 18 15.5 14 20.5 10"/>
   </g>
 </svg>

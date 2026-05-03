@@ -446,6 +446,9 @@ module Client =
         applyLangAttr lang.Value
         lang.View |> View.Sink (fun l ->
             applyLangAttr l
+            // Update <title> so the browser tab reflects the active language.
+            let s = Strings.table l
+            JS.Inline<string -> unit>("function(t){document.title=t;}") s.DocumentTitle
             try JS.Window.LocalStorage.SetItem(langKey, langToCode l) with _ -> ())
 
         let isDark = Var.Create (readInitialDark ())

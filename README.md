@@ -1,68 +1,95 @@
 # SmartPantry
 
-> **AI-powered pantry & recipe assistant** — F# / WebSharper / SQLite / Tailwind / OpenAI
+> **AI-powered pantry & recipe assistant** — F# / WebSharper / SQLite / Tailwind / OpenAI / TheMealDB
 
 [![CI](https://github.com/justdawee/HHC62Y_ProjectOmega/actions/workflows/docker-build.yml/badge.svg)](https://github.com/justdawee/HHC62Y_ProjectOmega/actions/workflows/docker-build.yml)
 
 SmartPantry helps you stop throwing food away. Track what's in your pantry,
-flag what's about to expire, and let OpenAI's gpt-5.4-mini propose **three
-distinct recipe variations** (quick / hearty / creative) from the ingredients
-you actually have on hand.
+flag what's about to expire, and let OpenAI's `gpt-5.4-mini` propose
+**three distinct recipe variations** (quick / hearty / creative) from the
+ingredients you actually have on hand — each with a real food photo
+sourced from [TheMealDB](https://www.themealdb.com/).
 
-![SmartPantry — v2 dark mode with recipe](screenshots/28-v2-hungarian-recipe.png)
+![SmartPantry — desktop dark mode with a generated recipe](screenshots/readme-01-dark-desktop.png)
 
-## What's new in v2
+## Highlights
 
-- **Bilingual UI** — defaults to English, one-tap toggle to Hungarian
-  (`EN`/`HU` button in the header). The language flows all the way down to
-  the LLM prompt, so recipes come back in the chosen language.
-- **Layout refresh** to match the polished reference design: header pill
-  showing live ingredient count, two equal columns, compact pill-shaped
-  add-row, "Clear all" pantry reset, dedicated AI Chef panel.
-- **Three recipe alternatives per generation**, surfaced as Quick / Hearty /
-  Creative tabs the user can flip between without re-querying the API.
-- **Recipe imagery** — server-side hybrid: TheMealDB filters by the user's
-  ingredients to harvest 5–8 real-world recipe titles which are fed to the LLM
-  as inspiration; after the LLM generates the 3 variants, each variant's
-  English `imagePromptHint` is searched on TheMealDB and the first matching
-  recipe's photo URL is attached. A procedural gradient + emoji fallback
-  always renders behind the photo so the card never looks broken when no
-  match is found. Pollinations.ai removed (their endpoint moved behind a
-  Cloudflare Turnstile challenge).
-- **Ingredient icons** — emoji lookup over 30+ common ingredients (English &
-  Hungarian names) with a generic 🥗 fallback.
+- **Bilingual UI (EN ⇄ HU)** — one-tap toggle in the header. The chosen
+  language flows all the way down to the LLM prompt, so generated recipe
+  copy comes back in your language.
+- **Three recipe alternatives per generation** — Quick / Hearty / Creative.
+  Browse them with arrow + dot slider, no extra API calls.
+- **Real recipe imagery** — TheMealDB filters by your pantry ingredients
+  to harvest a pool of real-world recipes; titles are fed to the LLM as
+  inspiration; each generated variant gets a matching photo via a
+  five-tier fallback chain. A procedural gradient + emoji always renders
+  underneath so the card never looks broken.
+- **Cheap LLM by default** — `gpt-5.4-mini` (~$0.75 input / $4.50 output
+  per 1M tokens). Override with `OPENAI_MODEL` env var.
+- **Three-tier safeguard against token waste**:
+  - Client validation rejects garbage (`asdasd`, profanity, non-foods)
+    before it ever hits the network.
+  - Server gate refuses to call OpenAI when nothing in the pantry looks
+    like real food.
+  - Empty-result placeholder when the model parses but yields nothing.
+- **Smart autocomplete** — 70+ ingredient catalog (English + Hungarian
+  names) with default unit + emoji. Picking a suggestion auto-fills both
+  the name AND the matching unit (`Milk` → `l`, `Tomato` → `pcs`).
+- **Custom UI dropdown** for units (no native browser select), with
+  reliable click-outside dismiss and full keyboard navigation.
+- **Anonymous per-browser pantry** — `sp_uid` HttpOnly cookie, no signup
+  / password / account.
+- **Polished glassmorphism** with mesh gradient background, drifting
+  orbs, animated CTA glow, slide-in step animations, expiry badges that
+  pulse when items are close to going off.
+- **Browser title localised** to the chosen language; favicon matches
+  the gradient leaf in the header logo.
+
+## Screenshots
+
+| Desktop · dark                                            | Desktop · light                                            |
+|-----------------------------------------------------------|------------------------------------------------------------|
+| ![dark](screenshots/readme-01-dark-desktop.png)           | ![light](screenshots/readme-02-light-desktop.png)          |
+
+| Recipe slider · second variant                            | Mobile (390 px)                                           |
+|-----------------------------------------------------------|------------------------------------------------------------|
+| ![hearty](screenshots/readme-03-recipe-hearty.png)        | ![mobile](screenshots/readme-04-mobile.png)                |
+
+| Custom unit dropdown                                      | Validation safeguards                                     |
+|-----------------------------------------------------------|------------------------------------------------------------|
+| ![dropdown](screenshots/readme-06-dropdown.png)           | ![validation](screenshots/readme-05-validation.png)        |
 
 ## Why this exists
 
-Households waste a huge amount of food simply because nobody thinks to use up
-the carrot, the half tin of tomatoes, and the eggs that are about to turn.
-SmartPantry fixes the “what should I cook with this stuff?” friction in two
-moves:
+Households waste a huge amount of food simply because nobody thinks to use
+up the carrot, the half tin of tomatoes, and the eggs that are about to
+turn. SmartPantry fixes the "what should I cook with this stuff?"
+friction in two moves:
 
-1. **Track the pantry** — name, quantity, unit, and (optionally) expiry date,
-   with a glanceable colour-coded badge so the about-to-expire stuff jumps
-   out at you.
-2. **Press one button** → the server bundles your inventory into a Hungarian
-   chef-prompt, ships it to OpenAI's chat completions endpoint in JSON mode,
-   and returns a structured recipe (title, prep time, numbered steps, tags)
-   that renders into a neat modal.
+1. **Track the pantry** — name, quantity, unit, optional expiry. A
+   colour-coded badge highlights what's about to expire.
+2. **Press one button** → server gathers real-world recipe inspiration
+   from TheMealDB, hands it (plus your pantry) to OpenAI, then resolves
+   a real photo for each generated variant. You get three recipes you
+   can actually cook tonight.
 
-It's a 1-page web app that runs in a single Docker container and remembers
+It's a single-page web app that runs in one Docker container and remembers
 your pantry per browser via an anonymous `sp_uid` cookie — **no signup, no
 password, no account**.
 
 ## Tech stack
 
-| Layer       | Choice                                                                 |
-|-------------|------------------------------------------------------------------------|
-| Backend     | F# (.NET 10) on **WebSharper.AspNetCore** with `[<Rpc>]` async methods |
-| Frontend    | **WebSharper.UI** templating, reactive `Var` / `View` / `ListModel`    |
-| Database    | **SQLite** + Dapper, single file on a mounted volume                   |
-| Styling     | **Tailwind CSS** built at build time via MSBuild target                |
-| AI          | **OpenAI** chat completions (gpt-5.4-mini) with JSON mode               |
-| Bundling    | esbuild (WebSharper Release) → single `wwwroot/Scripts/all.js`         |
-| Container   | Multi-stage Dockerfile (Node → SDK → ASP.NET runtime, non-root user)   |
-| CI/CD       | GitHub Actions → `ghcr.io/justdawee/hhc62y_projectomega`               |
+| Layer        | Choice                                                                 |
+|--------------|------------------------------------------------------------------------|
+| Backend      | F# (.NET 10) on **WebSharper.AspNetCore** with `[<Rpc>]` async methods |
+| Frontend     | **WebSharper.UI** templating, reactive `Var` / `View` / `ListModel`    |
+| Database     | **SQLite** + Dapper, single file on a mounted volume                   |
+| Styling      | **Tailwind CSS** built at build time via MSBuild target                |
+| AI           | **OpenAI** `gpt-5.4-mini` chat completions with JSON mode              |
+| Recipe data  | **TheMealDB** v1 free public API (filter + search)                     |
+| Bundling     | esbuild (WebSharper Release) → single `wwwroot/Scripts/all.js`         |
+| Container    | Multi-stage Dockerfile (Node → SDK → ASP.NET runtime, non-root user)   |
+| CI/CD        | GitHub Actions → `ghcr.io/justdawee/hhc62y_projectomega`               |
 
 ```
 ┌────────────────┐  HTTP/JSON-RPC  ┌────────────────────┐
@@ -71,71 +98,65 @@ password, no account**.
 │  • Reactive    │                 │  • cookie auth     │
 └────────────────┘                 └────────┬───────────┘
                                             │
-                              ┌─────────────┼─────────────┐
-                              ▼             ▼             ▼
-                     ┌────────────┐  ┌────────────┐  ┌────────────┐
-                     │  SQLite    │  │  Dapper    │  │ OpenAI       │
-                     │  /data/.db │  │  + Option  │  │  (HTTPS)   │
-                     │            │  │  handlers  │  │            │
-                     └────────────┘  └────────────┘  └────────────┘
+                ┌───────────────┬───────────┼───────────┬─────────────┐
+                ▼               ▼           ▼           ▼             ▼
+         ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐
+         │  SQLite    │  │  Dapper    │  │  OpenAI    │  │ TheMealDB  │
+         │  /data/.db │  │  + Option  │  │  (HTTPS)   │  │  (HTTPS)   │
+         │            │  │  handlers  │  │            │  │            │
+         └────────────┘  └────────────┘  └────────────┘  └────────────┘
 ```
 
-## Screenshots
+## Quick start
 
-| Dark mode (desktop)                                          | Light mode (desktop)                              |
-|--------------------------------------------------------------|---------------------------------------------------|
-| ![dark](screenshots/10-pantry-with-badges-fixed.png)        | ![light](screenshots/11-light-mode.png)          |
-
-| Mobile (375 px)                              | Recipe modal (OpenAI gpt-5.4-mini generated)                  |
-|----------------------------------------------|-----------------------------------------------------------|
-| ![mobile](screenshots/12-mobile-with-items.png) | ![recipe](screenshots/20-recipe-loaded-success.png)    |
-
-## Quick start (Docker)
-
-You need: **Docker** ≥ 24, **an OpenAI API key** (cheap, at
+You need: **Docker** ≥ 24 (or **.NET 10** + **Node 20** for local dev),
+plus an **OpenAI API key** (cheap, get one at
 [platform.openai.com/api-keys](https://platform.openai.com/api-keys)).
+
+### Option 1 — local runner script (no Docker)
 
 ```bash
 git clone https://github.com/justdawee/HHC62Y_ProjectOmega.git
 cd HHC62Y_ProjectOmega
 
-# Drop your OpenAI key in the env file
 cp .env.example .env
 $EDITOR .env       # set OPENAI_API_KEY=sk-proj-...
 
-# Build + run (image is built locally on first run)
-docker compose up -d
+# Windows: PowerShell or double-click run.bat
+.\run.ps1
+```
 
+The runner reads `.env`, masks your key in the console echo, and starts
+the app on http://localhost:5000.
+
+### Option 2 — Docker
+
+```bash
+cp .env.example .env       # set OPENAI_API_KEY
+docker compose up -d
 open http://localhost:8080
 ```
 
 The pantry is persisted in `./data/smartpantry.db` (mounted as a volume).
 Stop the container with `docker compose down`; data survives.
 
-### Pulling the prebuilt image (skip the build)
+### Pulling the prebuilt image
 
-Once the GitHub Actions workflow has published an image to ghcr.io:
+Once GitHub Actions has published an image:
 
 ```bash
-docker compose pull          # grabs latest from ghcr
+docker compose pull
 docker compose up -d
 ```
 
-## Local development (no Docker)
+## Local development
 
 ```bash
-# Install Tailwind + .NET dependencies
 cd SmartPantry
 npm ci
 dotnet restore
 
-# Run dev (serves on http://localhost:5000)
 dotnet run -c Release
-
-# Or build + run with the same dotnet workflow
-dotnet build -c Release
-OPENAI_API_KEY=sk-proj-... ASPNETCORE_ENVIRONMENT=Production \
-  dotnet run -c Release --no-build
 ```
 
 > **Note:** `Debug` mode is supported but unbundled — you may hit a
@@ -145,12 +166,14 @@ OPENAI_API_KEY=sk-proj-... ASPNETCORE_ENVIRONMENT=Production \
 
 ## Environment variables
 
-| Var                       | Required | Default                                  | Description                                            |
-|---------------------------|----------|------------------------------------------|--------------------------------------------------------|
-| `OPENAI_API_KEY`            | yes      | _none_                                   | OpenAI API key. Without it, recipe gen errors. |
-| `DB_PATH`                 | no       | `./smartpantry.db` (next to the binary)  | SQLite file location. In Docker we set `/data/...`.    |
-| `ASPNETCORE_URLS`         | no       | `http://+:5000` (dev) / `:8080` (Docker) | Listen address.                                        |
-| `ASPNETCORE_ENVIRONMENT`  | no       | `Production` (Docker) / `Development`    | Standard ASP.NET Core knob.                            |
+| Var                       | Required | Default                     | Description                                                                |
+|---------------------------|----------|-----------------------------|----------------------------------------------------------------------------|
+| `OPENAI_API_KEY`          | yes      | _none_                      | OpenAI API key. Without it, recipe generation errors out gracefully.       |
+| `OPENAI_MODEL`            | no       | `gpt-5.4-mini`              | Override the chat model. Bump up for more quality, down for cheaper calls. |
+| `MEALDB_KEY`              | no       | `1` (free public test key)  | Upgrade with your supporter key from themealdb.com if you hit rate limits. |
+| `DB_PATH`                 | no       | `./smartpantry.db`          | SQLite file location. Docker uses `/data/smartpantry.db`.                  |
+| `ASPNETCORE_URLS`         | no       | `http://+:5000` / `:8080`   | Listen address.                                                            |
+| `ASPNETCORE_ENVIRONMENT`  | no       | `Production` (Docker)       | Standard ASP.NET Core knob.                                                |
 
 Secrets never enter the repo — `.env` is `.gitignore`d. Only `.env.example`
 is committed.
@@ -159,26 +182,29 @@ is committed.
 
 ```
 SmartPantry/
-├── Domain.fs            F# records (PantryItem, Recipe, RecipeStep, …)
+├── Domain.fs            F# records (PantryItem, Recipe, RecipeStep, RecipeBundle)
+├── Strings.fs           Bilingual UI string table (en + hu)
+├── Catalog.fs           70+ ingredient lookup with default unit + emoji
+├── Validation.fs        Heuristic guards: garbage / profanity / non-food
 ├── Database.fs          Dapper + SQLite + Option<'T> type handlers
-├── LlmClient.fs         OpenAI HTTP client, prompt builder, JSON parsing
+├── MealDbClient.fs      TheMealDB filter + search wrapper
+├── LlmClient.fs         OpenAI Chat Completions, prompt + JSON parsing
 ├── Remoting.fs          [<Rpc>] surface + cookie-derived UserContext
 ├── Startup.fs           ASP.NET host, sp_uid cookie middleware, DI
 ├── Site.fs              Single-page Sitelet (server-side shell)
 ├── Client.fs            [<JavaScript>] reactive UI (ListModel, Vars, modal state)
 ├── Main.html            Tailwind layout + ws-template sub-templates
 ├── styles/input.css     Glassmorphism components (mesh-bg, glass, cta-glow, …)
-├── tailwind.config.js   Custom keyframes, fonts, dark mode
+├── tailwind.config.js   Custom keyframes, fonts, dark mode, plugin strategy
 ├── Dockerfile           3-stage build (node → sdk → aspnet runtime)
 ├── package.json         tailwindcss, esbuild, plugins
 └── wwwroot/             Static assets (favicon, generated CSS/JS)
 
-.github/workflows/
-└── docker-build.yml     CI → ghcr.io image push
-
-docker-compose.yml       Runtime composition + /data volume
-.env.example             Env template
-screenshots/             README assets
+run.ps1, run.bat        Local runner — loads .env, launches dotnet
+docker-compose.yml      Runtime composition + /data volume
+.env.example            Env template
+.github/workflows/      GitHub Actions CI -> ghcr.io
+screenshots/            README assets
 ```
 
 ## Architecture notes
@@ -190,25 +216,72 @@ random GUID). All RPC handlers read it from `HttpContext.Request.Cookies`
 inside `UserContext.currentUserId()` — the client never sends a UserId
 parameter, so a forged client cannot read someone else's pantry.
 
-Trade-off: clearing cookies / private mode = a fresh empty pantry. This is
-deliberate for a no-signup MVP; an export/import button would be a good
-follow-up.
+Trade-off: clearing cookies / private mode = a fresh empty pantry. This
+is deliberate for a no-signup MVP.
+
+### Recipe generation pipeline
+
+```
+User pantry  ──►  Catalog → English names                     (1)
+                       │
+                       ▼
+              TheMealDB filter.php (parallel per ingredient)   (2)
+                       │
+                       ▼
+              5-8 inspiration titles + photos
+                       │
+                       ▼
+   ─────────► OpenAI Chat Completions w/ JSON mode             (3)
+   │           (lang-specific prompt + inspirations)
+   │                   │
+   │                   ▼
+   │           3 distinct recipes (quick/hearty/creative)
+   │                   │
+   │                   ▼
+   │     For each recipe:                                      (4)
+   │       inspiration map → search.php(hint) → search.php(title)
+   │       → filter.php(catalog ingredient) → inspirations[idx]
+   │
+   └─◄─ Recipe.ImageUrl set, RecipeBundle returned to client
+```
+
+Tier 5 (final fallback) deterministically picks from the
+already-fetched inspirations by variant index, so every variant always
+gets a food-themed image even when no specific match is found.
+
+### Three-tier garbage / token-waste safeguard
+
+1. **Client (`Validation.fs`)** rejects too-short input, repeated
+   characters (`asdasd`, `aaaa`), digits-only names, profanity (small
+   EN+HU bank), and obvious non-foods (small EN+HU bank). Errors render
+   inline with localised messages.
+2. **Server (`Remoting.GenerateRecipes`)** filters the pantry through
+   `Catalog ∪ Validation`. If nothing is plausible food, returns an
+   error before ever calling OpenAI. Verified: a pantry of pure
+   garbage triggers a 4 ms response with zero outbound API calls.
+3. **LLM (`LlmClient`)** treats an empty `recipes[]` array as a soft
+   error with a friendly retry message instead of a stack trace.
 
 ### F# Option<'T> ↔ Dapper
 
-Dapper does not natively understand `'T option`. We register a generic
-`OptionHandler<'T>` for primitives and a dedicated `DateTimeOptionHandler`
-that handles SQLite's TEXT-based DateTime storage (parsing ISO 8601 strings
-back into `DateTime`). Records are tagged `[<CLIMutable>]` so Dapper can
-materialize them via the parameterless ctor + property setters.
+Dapper does not natively understand `'T option`. Custom
+`OptionHandler<'T>` for primitives + a dedicated `DateTimeOptionHandler`
+that handles SQLite's TEXT-based DateTime storage. Records are tagged
+`[<CLIMutable>]` so Dapper can materialize them via the parameterless
+ctor + property setters.
 
-### Reactive UI gotcha
+### WebSharper templating gotchas (battle-tested here)
 
-WebSharper templates lose their event handler bindings if you re-instantiate
-the template inside `View.Map`. The fix used here is to instantiate each
-sub-template once outside `View.Map`, then wrap that single `Doc` in
-`Doc.EmbedView` so the same instance is mounted/unmounted as state toggles.
-That's why the sticky CTA, modal shell, and empty state are all built up-front.
+- **Inline event handlers get stripped.** `<img onload="…">` from the
+  template won't fire; use `Doc.Element "img" [ on.load … ]` instead.
+- **Re-instantiating sub-templates inside `View.Map` drops their event
+  handlers.** Build sub-templates once outside the `View.Map`, then
+  swap them in/out via `Doc.EmbedView`.
+- **Multi-arg `JS.Inline` with curried F# functions emits TypeError.**
+  Single-arg `JS.Inline` functions work; for two args, use two
+  single-arg helpers.
+- **F# records as RPC types need `[<JavaScript>]`** so they round-trip
+  to the client without a wire-format mismatch.
 
 ### LLM contract
 
@@ -216,44 +289,67 @@ The OpenAI prompt asks **strictly** for JSON in this shape:
 
 ```json
 {
-  "title": "...",
-  "prepTimeMinutes": 25,
-  "steps": [{ "stepNumber": 1, "instruction": "..." }],
-  "tags": ["..."]
+  "recipes": [
+    {
+      "title": "Quick mushroom risotto",
+      "prepTimeMinutes": 25,
+      "steps": [{ "stepNumber": 1, "instruction": "…" }],
+      "tags": ["quick","vegetarian"],
+      "imagePromptHint": "creamy mushroom risotto on a white plate"
+    }
+  ]
 }
 ```
 
-We send `response_format: { "type": "json_object" }` so OpenAI guarantees
-parseable JSON. Failures (network, 4xx/5xx, JSON parse) flow back as
-`Result<Recipe, string>` and surface as a friendly modal with a retry button.
+The prompt opens AND closes with a target-language directive, gives a
+target-language example title + step + tags, and forbids translating
+foreign ingredient names back to their original language inside the
+recipe text. `imagePromptHint` is always English so it can feed the
+TheMealDB image search even when the recipe itself is Hungarian.
 
 ## CI/CD
 
-`.github/workflows/docker-build.yml` builds the Dockerfile on every push to
-`main` (and on PRs, without the push) and tags the image with:
+`.github/workflows/docker-build.yml` builds the Dockerfile on every push
+to `main` (and on PRs without the push) and tags the image with:
 
 - `latest` (main only)
 - `sha-<short>` (every commit)
 - semver tags (when you push `v*` tags)
 
-GHCR uses the built-in `GITHUB_TOKEN` — no PAT setup required. To consume
-the image elsewhere just `docker pull ghcr.io/justdawee/hhc62y_projectomega`.
+GHCR uses the built-in `GITHUB_TOKEN` — no PAT required. To consume
+the image elsewhere just `docker pull
+ghcr.io/justdawee/hhc62y_projectomega`.
 
 ## Verification matrix
 
-End-to-end tested in Chrome via the Chrome DevTools MCP:
+End-to-end tested in Chrome via the Chrome DevTools MCP across multiple
+iterations:
 
-- ✅ CRUD round-trip (add / delete / counter / persistence after restart)
-- ✅ XSS attempt (`<script>alert('xss')</script>` stays escaped, no execution)
+- ✅ CRUD round-trip + persistence after container restart
+- ✅ XSS attempt (`<script>` tag) rendered as escaped text
+- ✅ Validation: `asdasd` / `bicikli` / profanity all blocked at the
+  client; pure garbage pantry blocked at the server (4 ms, zero
+  OpenAI tokens spent)
 - ✅ Expiry badges (fresh / soon-with-pulse / expired) at boundary days
-- ✅ Modal open / Esc / backdrop / X-close, retry button on error
-- ✅ Dark ⇄ Light toggle, persisted in `localStorage`, 600 ms crossfade
-- ✅ Responsive 320 / 375 / 1440 px (no overflow, layout reflows correctly)
-- ✅ Performance trace: **LCP 69 ms · CLS 0.00 · TTFB 3 ms** on local Release build
-- ✅ Performance with 4× CPU throttling: **LCP 103 ms · CLS 0.00**
+- ✅ Recipe slider: arrow + dot navigation, smooth slide animation,
+  every variant gets a real photo
+- ✅ Custom unit dropdown: opens, closes on outside click, click on
+  any option fires correctly even over hover-able pantry cards
+- ✅ Autocomplete suggestions, auto-unit on exact-match name typing
+- ✅ Dark ⇄ Light toggle, persisted in `localStorage`, smooth crossfade
+- ✅ EN ⇄ HU toggle: header + pantry + AI chef + footer + LLM prompt
+  all switch; toast prompts for reload to translate existing pantry
+- ✅ Browser title syncs to the chosen language
+- ✅ Responsive 320 / 375 / 390 / 1440 px (no overflow, layout reflows)
+- ✅ Performance: **LCP < 100 ms** on local Release build, **CLS 0.00**
 - ✅ Anonymous user isolation (incognito tab gets a fresh pantry)
-- ✅ End-to-end OpenAI recipe generation in ~3-9 s: prompt → JSON → modal renders
-  with title, prep time, tags, and stagger-animated step list
+- ✅ End-to-end OpenAI generation in ~3–9 s with 3 recipe variants
+
+## Credits
+
+Built with ♥ by [JustDawee](https://github.com/justdawee). Free public
+recipe data from [TheMealDB](https://www.themealdb.com/). LLM by
+[OpenAI](https://platform.openai.com/).
 
 ## License
 

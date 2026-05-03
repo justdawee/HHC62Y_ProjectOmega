@@ -13,6 +13,9 @@ type Lang =
 module Strings =
 
     type T = {
+        // browser
+        DocumentTitle: string
+
         // header
         Tagline: string
         IngredientsOnHand: string
@@ -83,6 +86,8 @@ module Strings =
     }
 
     let en: T = {
+        DocumentTitle = "SmartPantry · Pantry · AI Chef"
+
         Tagline = "PANTRY · AI CHEF"
         IngredientsOnHand = "ingredients on hand"
         ThemeToggle = "Toggle theme"
@@ -144,17 +149,19 @@ module Strings =
     }
 
     let hu: T = {
-        Tagline = "KAMRA · AI SÉF"
-        IngredientsOnHand = "alapanyag a kamrában"
-        ThemeToggle = "Téma váltás"
-        LangToggle = "Nyelv váltás"
+        DocumentTitle = "SmartPantry · Kamra · AI séf"
 
-        YourPantry = "A kamrád"
-        Items = "elem"
-        ClearAll = "Üríts mindent"
-        ClearAllConfirm = "Tényleg ürítsem az egész kamrát?"
-        AddIngredientPlaceholder = "Új alapanyag…"
-        AddBtnLabel = "Alapanyag hozzáadása"
+        Tagline = "KAMRA · AI SÉF"
+        IngredientsOnHand = "hozzávaló a kamrában"
+        ThemeToggle = "Téma váltása"
+        LangToggle = "Nyelv váltása"
+
+        YourPantry = "Kamrád"
+        Items = "tétel"
+        ClearAll = "Kamra ürítése"
+        ClearAllConfirm = "Biztosan kiürítsük az egész kamrát?"
+        AddIngredientPlaceholder = "Új hozzávaló…"
+        AddBtnLabel = "Hozzávaló hozzáadása"
         Pcs = "db"
         Grams = "g"
         Kg = "kg"
@@ -163,22 +170,22 @@ module Strings =
         Cup = "csésze"
         Tbsp = "ek"
         Tsp = "tk"
-        EmptyName = "Adj nevet az alapanyagnak."
+        EmptyName = "Add meg a hozzávaló nevét."
         NegativeQty = "A mennyiség nem lehet negatív."
         InvalidQty = "Érvénytelen mennyiség."
 
         EmptyPantryTitle = "A kamrád üres"
-        EmptyPantryHint = "Adj hozzá egy alapanyagot — utána javasolhatok hozzá receptet."
+        EmptyPantryHint = "Vegyél fel pár hozzávalót, és máris tudok ajánlani belőle valamit."
 
-        AiChef = "AI Séf"
-        ChefTagline = "alapanyagból ötlet"
-        GenerateRecipe = "Receptet az AI-tól"
-        IngredientsCount = "alapanyag"
+        AiChef = "AI séf"
+        ChefTagline = "ötletek a kamrádból"
+        GenerateRecipe = "Receptet kérek"
+        IngredientsCount = "hozzávaló"
         NoRecipeYet = "Még nincs recept"
-        NoRecipeHintLine1 = "Tedd tele a kamrát, és nyomd meg a gombot fent."
-        NoRecipeHintLine2 = "A recept itt fog megjelenni."
+        NoRecipeHintLine1 = "Tölts fel pár hozzávalót, majd kattints a fenti gombra."
+        NoRecipeHintLine2 = "Az ötletek itt fognak megjelenni."
         Thinking = "A séf gondolkodik…"
-        RetryBtn = "Próbáljuk újra"
+        RetryBtn = "Újra próbálom"
         SomethingWrong = "Valami félrement"
 
         RecipeLabel = "RECEPT"
@@ -190,17 +197,17 @@ module Strings =
         PrevVariantAria = "Előző változat"
         NextVariantAria = "Következő változat"
 
-        ToastTitle = "Nyelv megváltozott"
-        ToastBody = "A meglévő alapanyagok és a jelenleg betöltött recept az eredeti nyelvükön maradnak. Töltsd újra az oldalt, ha mindent magyarra akarsz váltani."
+        ToastTitle = "Megváltozott a nyelv"
+        ToastBody = "A meglévő hozzávalók és a jelenleg betöltött recept eredeti nyelven maradnak. Az oldal újratöltésével minden magyarra fordul."
         ReloadLabel = "Újratöltés"
         DismissLabel = "Bezár"
 
-        ExpiredDaysAgo = "Lejárt %d napja"
+        ExpiredDaysAgo = "%d napja lejárt"
         ExpiresToday = "Ma jár le"
         ExpiresInDays = "%d nap múlva lejár"
         FreshUntil = "Friss · %s"
 
-        FooterPrefix = "SmartPantry · kamra, csiszolva · készítette ♥-ből"
+        FooterPrefix = "SmartPantry · kamra, finomhangolva · készítette szeretettel"
         FooterAuthor = "JustDawee"
     }
 

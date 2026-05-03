@@ -217,8 +217,8 @@ module LlmClient =
                             if body.Length > 240 then body.Substring(0, 240) + "..." else body
                         let prefix =
                             match lang with
-                            | En -> sprintf "Groq API error (%d)" (int resp.StatusCode)
-                            | Hu -> sprintf "Groq API hiba (%d)" (int resp.StatusCode)
+                            | En -> sprintf "OpenAI API error (%d)" (int resp.StatusCode)
+                            | Hu -> sprintf "API hiba (%d)" (int resp.StatusCode)
                         return Error (sprintf "%s: %s" prefix snippet)
                     else
                         let! completion = resp.Content.ReadFromJsonAsync<CompletionResponse>(jsonOpts)
@@ -230,8 +230,8 @@ module LlmClient =
                         if String.IsNullOrWhiteSpace(content) then
                             let m =
                                 match lang with
-                                | En -> "Groq returned an empty response."
-                                | Hu -> "A Groq üres választ adott."
+                                | En -> "The AI returned an empty response."
+                                | Hu -> "Az AI üres választ adott."
                             return Error m
                         else
                             try
@@ -263,7 +263,7 @@ module LlmClient =
                                     let m =
                                         match lang with
                                         | En -> "Couldn't come up with anything tasty from these ingredients. Try adding a few more recognisable items and ask again."
-                                        | Hu -> "Ezekből az alapanyagokból nem született ötlet. Próbálj még pár felismerhető hozzávalót, és kérj receptet újra."
+                                        | Hu -> "Ezekből a hozzávalókból most nem született ötlet. Vegyél fel még néhányat, és próbáld meg újra."
                                     return Error m
                                 else
                                     return Ok ({ Recipes = recipes } : RecipeBundle)
@@ -271,14 +271,14 @@ module LlmClient =
                                 let m =
                                     match lang with
                                     | En -> sprintf "Could not parse the recipe JSON: %s" ex.Message
-                                    | Hu -> sprintf "Nem sikerült feldolgozni a recept JSON-t: %s" ex.Message
+                                    | Hu -> sprintf "Nem sikerült értelmezni a recept válaszát: %s" ex.Message
                                 return Error m
                 with
                 | :? TaskCanceledException ->
                     let m =
                         match lang with
-                        | En -> "Timeout: Groq did not respond within 45 seconds."
-                        | Hu -> "Időtúllépés: a Groq nem válaszolt 45 másodpercen belül."
+                        | En -> "Timeout: the AI did not respond within 45 seconds."
+                        | Hu -> "Időtúllépés: az AI nem válaszolt 45 másodpercen belül."
                     return Error m
                 | ex ->
                     let m =

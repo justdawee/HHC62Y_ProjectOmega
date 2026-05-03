@@ -20,7 +20,6 @@ module Site =
     let HomePage (ctx: Context<EndPoint>) =
         Content.Page(
             Templates.MainTemplate()
-                .Title("Kamra")
                 .Body(homeBody ())
                 .Doc(),
             Bundle = "home"
