@@ -1,4 +1,4 @@
-﻿namespace SmartPantry
+namespace SmartPantry
 
 open WebSharper
 open WebSharper.UI
@@ -13,15 +13,7 @@ module Templates =
 [<JavaScript>]
 module Client =
 
-    let Main () =
-        let rvReversed = Var.Create ""
-        Templates.MainTemplate.MainForm()
-            .OnSend(fun e ->
-                async {
-                    let! res = Server.DoSomething e.Vars.TextToReverse.Value
-                    rvReversed := res
-                }
-                |> Async.StartImmediate
-            )
-            .Reversed(rvReversed.View)
-            .Doc()
+    /// Phase 4 placeholder. The full reactive UI (ListModel + Vars, RPC bindings,
+    /// dark mode, animations) is wired in the next milestone.
+    let Main () : Doc =
+        Doc.Empty
