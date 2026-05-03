@@ -38,6 +38,8 @@ module Database =
     // startup.
     // ------------------------------------------------------------------
 
+    /// Generic Option handler — works for primitives that SQLite returns in
+    /// the same .NET type (string, int, float).
     type private OptionHandler<'T>() =
         inherit SqlMapper.TypeHandler<'T option>()
 
@@ -52,6 +54,28 @@ module Database =
             then None
             else Some (value :?> 'T)
 
+    /// SQLite stores DateTime as TEXT, so we need an explicit string -> DateTime
+    /// conversion on Parse. The generic OptionHandler<'T> would `:?> DateTime`
+    /// the raw string and crash with InvalidCastException.
+    type private DateTimeOptionHandler() =
+        inherit SqlMapper.TypeHandler<DateTime option>()
+
+        override _.SetValue(parameter, value) =
+            parameter.Value <-
+                match value with
+                | Some (d: DateTime) -> box (d.ToString("yyyy-MM-dd HH:mm:ss.fff"))
+                | None -> box DBNull.Value
+
+        override _.Parse(value) =
+            if isNull value || value = box DBNull.Value then None
+            else
+                match value with
+                | :? DateTime as d -> Some d
+                | :? string as s ->
+                    let mutable parsed = DateTime.MinValue
+                    if DateTime.TryParse(s, &parsed) then Some parsed else None
+                | _ -> None
+
     let mutable private handlersRegistered = false
 
     let private registerTypeHandlers () =
@@ -59,7 +83,7 @@ module Database =
             SqlMapper.AddTypeHandler(OptionHandler<string>())
             SqlMapper.AddTypeHandler(OptionHandler<int>())
             SqlMapper.AddTypeHandler(OptionHandler<float>())
-            SqlMapper.AddTypeHandler(OptionHandler<DateTime>())
+            SqlMapper.AddTypeHandler(DateTimeOptionHandler())
             handlersRegistered <- true
 
     // ------------------------------------------------------------------
