@@ -24,7 +24,7 @@ module Client =
         | Failed of string
 
     // ------------------------------------------------------------------
-    // Number / date helpers — WebSharper has limited .NET API in JS
+    // Number / date helpers
     // ------------------------------------------------------------------
 
     let private prettyNumber (n: float) : string =
@@ -39,93 +39,38 @@ module Client =
     let private toIsoDate (d: DateTime) : string =
         string d.Year + "-" + padInt2 d.Month + "-" + padInt2 d.Day
 
-    let private parseExpiry (raw: string) : DateTime option =
-        if String.IsNullOrWhiteSpace(raw) then None
-        else
-            let mutable result = DateTime.MinValue
-            if DateTime.TryParse(raw, &result) then Some result.Date else None
-
     let private daysUntil (d: DateTime) : int =
         let today = DateTime.Now.Date
         int (d.Date - today).TotalDays
 
     // ------------------------------------------------------------------
-    // Ingredient icon: tiny lookup of common foods, fallback to a generic.
-    // Keys are normalized: lowercase + simplified accents.
+    // Ingredient icon: short lookup, then catalog fallback, then generic.
     // ------------------------------------------------------------------
-
-    let private normalize (s: string) : string =
-        if isNull s then ""
-        else
-            (s.ToLower())
-                .Replace("á", "a").Replace("é", "e").Replace("í", "i")
-                .Replace("ó", "o").Replace("ö", "o").Replace("ő", "o")
-                .Replace("ú", "u").Replace("ü", "u").Replace("ű", "u")
-                .Trim()
 
     let private iconFor (name: string) : string =
-        let key = normalize name
-        let contains (subs: string list) = subs |> List.exists key.Contains
-        if   contains ["egg"; "tojas"]                          then "🥚"
-        elif contains ["milk"; "tej"]                            then "🥛"
-        elif contains ["cheese"; "sajt"; "parmesan"; "parmezan"] then "🧀"
-        elif contains ["butter"; "vaj"]                          then "🧈"
-        elif contains ["yogurt"; "kefir"; "joghurt"]             then "🥛"
-        elif contains ["flour"; "liszt"]                         then "🌾"
-        elif contains ["rice"; "rizs"; "arborio"]                then "🍚"
-        elif contains ["pasta"; "spaghetti"; "teszta"]           then "🍝"
-        elif contains ["bread"; "kenyer"]                        then "🍞"
-        elif contains ["sugar"; "cukor"]                         then "🍬"
-        elif contains ["salt"; "so"; "pepper"; "bors"]           then "🧂"
-        elif contains ["oil"; "olaj"; "olive"; "oliva"]          then "🫒"
-        elif contains ["onion"; "hagyma"]                        then "🧅"
-        elif contains ["garlic"; "fokhagyma"]                    then "🧄"
-        elif contains ["tomato"; "paradicsom"]                   then "🍅"
-        elif contains ["potato"; "krumpli"; "burgonya"]          then "🥔"
-        elif contains ["carrot"; "sargarepa"; "repa"]            then "🥕"
-        elif contains ["mushroom"; "gomba"; "cremini"]           then "🍄"
-        elif contains ["pepper"; "paprika"]                      then "🌶️"
-        elif contains ["lettuce"; "salata"]                      then "🥬"
-        elif contains ["spinach"; "spenot"]                      then "🥬"
-        elif contains ["broccoli"; "brokkoli"]                   then "🥦"
-        elif contains ["cucumber"; "uborka"]                     then "🥒"
-        elif contains ["corn"; "kukorica"]                       then "🌽"
-        elif contains ["chicken"; "csirke"]                      then "🍗"
-        elif contains ["beef"; "marha"]                          then "🥩"
-        elif contains ["pork"; "sertes"]                         then "🥓"
-        elif contains ["fish"; "hal"; "salmon"; "lazac"]         then "🐟"
-        elif contains ["shrimp"; "rak"]                          then "🦐"
-        elif contains ["lemon"; "citrom"]                        then "🍋"
-        elif contains ["apple"; "alma"]                          then "🍎"
-        elif contains ["banana"; "banan"]                        then "🍌"
-        elif contains ["orange"; "narancs"]                      then "🍊"
-        elif contains ["strawberry"; "eper"]                     then "🍓"
-        elif contains ["honey"; "mez"]                           then "🍯"
-        elif contains ["chocolate"; "csoki"]                     then "🍫"
-        elif contains ["bean"; "bab"]                            then "🫘"
-        elif contains ["herb"; "basil"; "bazsalikom"; "petrezselyem"; "parsley"] then "🌿"
-        else "🥗"
+        match Catalog.findByName name with
+        | Some s -> s.Icon
+        | None -> "🥗"
 
     // ------------------------------------------------------------------
-    // Pollinations.ai image URL builder
+    // Pollinations.ai image URL
     // ------------------------------------------------------------------
 
     let private encodeURI (s: string) : string =
         JS.Inline<string -> string>("encodeURIComponent")(s)
 
-    /// Build a Pollinations.ai image URL. If `token` is non-empty it is
-    /// appended to lift rate limits; otherwise we use the free public tier.
+    let private titleHash (title: string) : int =
+        let chars = title.ToCharArray()
+        let mutable h = 0
+        for i in 0 .. chars.Length - 1 do
+            h <- (h * 31 + int chars.[i]) &&& 0x7fffffff
+        h
+
     let private pollinationsUrl (token: string) (recipe: Recipe) : string =
         let prompt =
             recipe.ImagePromptHint
             + ", food photography, plated dish, soft natural light, top-down 45deg, vibrant colors, michelin presentation"
-        // Seed = stable hash of title so the image stays consistent for that recipe
-        let seed =
-            let chars = recipe.Title.ToCharArray()
-            let mutable h = 0
-            for i in 0 .. chars.Length - 1 do
-                h <- (h * 31 + int chars.[i]) &&& 0x7fffffff
-            h % 100000
+        let seed = (titleHash recipe.Title) % 100000
         let baseUrl =
             sprintf "https://image.pollinations.ai/prompt/%s?width=800&height=450&seed=%d&nologo=true&model=flux"
                     (encodeURI prompt) seed
@@ -133,7 +78,7 @@ module Client =
         else baseUrl + "&token=" + encodeURI token
 
     // ------------------------------------------------------------------
-    // Persistence: dark mode + language
+    // Persistence
     // ------------------------------------------------------------------
 
     let private themeKey = "sp-theme"
@@ -201,8 +146,7 @@ module Client =
             |> View.Map (fun lang -> renderExpiryBadge lang item)
             |> Doc.EmbedView
         let deleteAria =
-            langView
-            |> View.Map (fun _ -> "Delete " + item.Name)
+            langView |> View.Map (fun _ -> "Delete " + item.Name)
         Templates.MainTemplate.ItemCard()
             .Icon(iconFor item.Name)
             .Name(item.Name)
@@ -217,15 +161,54 @@ module Client =
             .Doc()
 
     // ------------------------------------------------------------------
-    // Recipe area: NotRequested / Loading / Loaded / Failed
+    // Variant slider rendering (dot bar + arrows)
     // ------------------------------------------------------------------
 
-    let private variantLabel (lang: Lang) (idx: int) : string =
+    let private variantLabelText (lang: Lang) (idx: int) : string =
         let s = Strings.table lang
         match idx with
         | 0 -> s.Alt1
         | 1 -> s.Alt2
         | _ -> s.Alt3
+
+    let private renderVariantNav
+        (lang: Lang)
+        (state: Var<RecipeState>)
+        (count: int)
+        (selectedIdx: int)
+        : Doc =
+        let s = Strings.table lang
+        let go (newIdx: int) =
+            match state.Value with
+            | Loaded (b, _) ->
+                let n = ((newIdx % count) + count) % count
+                state.Value <- Loaded (b, n)
+            | _ -> ()
+        let dots =
+            [ 0 .. count - 1 ]
+            |> List.map (fun i ->
+                let cls =
+                    if i = selectedIdx
+                    then Attr.Class "var-dot is-active"
+                    else Attr.Class "var-dot"
+                let aria = sprintf "Variant %d" (i + 1)
+                Templates.MainTemplate.VariantDot()
+                    .DotAttrs(cls)
+                    .DotAria(aria)
+                    .OnPickDot(fun _ -> go i)
+                    .Doc())
+        Templates.MainTemplate.VariantNavBar()
+            .VariantLabel(variantLabelText lang selectedIdx)
+            .Dots(dots)
+            .OnPrev(fun _ -> go (selectedIdx - 1))
+            .OnNext(fun _ -> go (selectedIdx + 1))
+            .PrevAttrs(Attr.Empty)
+            .NextAttrs(Attr.Empty)
+            .Doc()
+
+    // ------------------------------------------------------------------
+    // Recipe area renderer
+    // ------------------------------------------------------------------
 
     let private renderRecipe
         (lang: Lang)
@@ -243,25 +226,37 @@ module Client =
             else selectedIdx
         let recipe = List.item safeIdx recipes
 
-        // Variant tabs (only if >1 recipe)
-        let tabs =
-            if count <= 1 then [ Doc.Empty ]
-            else
-                recipes
-                |> List.mapi (fun i _ ->
-                    let isActive = i = safeIdx
-                    let attrs =
-                        if isActive
-                        then Attr.Class "tag bg-fuchsia-500/30 text-fuchsia-700 dark:text-fuchsia-200 border-fuchsia-400/40"
-                        else Attr.Class "text-slate-500 dark:text-slate-400 hover:bg-white/10 border-white/10"
-                    Templates.MainTemplate.VariantTab()
-                        .TabLabel(variantLabel lang i)
-                        .TabAttrs(attrs)
-                        .OnPickVariant(fun _ ->
-                            match state.Value with
-                            | Loaded (b, _) -> state.Value <- Loaded (b, i)
-                            | _ -> ())
-                        .Doc())
+        // Procedural fallback decoration — recipe-stable hue
+        let titleSeed = titleHash recipe.Title
+        let hueA = titleSeed % 360
+        let hueB = (titleSeed + 80) % 360
+        let fallbackStyle =
+            sprintf "background: linear-gradient(135deg, oklch(72%% 0.18 %d), oklch(68%% 0.16 %d));"
+                    hueA hueB
+        let foodEmoji = iconFor recipe.Title
+
+        let imgUrl = pollinationsUrl token recipe
+
+        let imgEl =
+            Doc.Element "img" [
+                Attr.Create "src" imgUrl
+                Attr.Create "alt" recipe.Title
+                Attr.Create "loading" "lazy"
+                Attr.Create "class" "absolute inset-0 z-20 w-full h-full object-cover opacity-0 transition-opacity duration-500"
+                on.load (fun el _ -> el.SetAttribute("style", "opacity:1"))
+                on.error (fun el _ -> el.SetAttribute("style", "display:none"))
+            ] []
+
+        let fallbackEl =
+            Doc.Element "div" [
+                Attr.Create "class" "absolute inset-0 z-10 grid place-items-center text-7xl"
+                Attr.Create "style" fallbackStyle
+                Attr.Create "aria-hidden" "true"
+            ] [
+                Doc.Element "span" [ Attr.Create "class" "drop-shadow-lg" ] [
+                    Doc.TextNode foodEmoji
+                ]
+            ]
 
         let stepDocs =
             recipe.Steps
@@ -280,61 +275,161 @@ module Client =
                     .Doc())
 
         let prepTimeText = sprintf "%d %s" recipe.PrepTimeMinutes s.Minutes
-        let imgUrl = pollinationsUrl token recipe
+        let nav = renderVariantNav lang state count safeIdx
 
-        // Procedural fallback decoration — used both as a placeholder while the
-        // AI image loads and as the final state if Pollinations.ai rejects us.
-        // We pick a hue-stable seed off the recipe title so each variant has a
-        // recognisable colour signature.
-        let titleSeed =
-            let chars = recipe.Title.ToCharArray()
-            let mutable h = 0
-            for i in 0 .. chars.Length - 1 do
-                h <- (h * 31 + int chars.[i]) &&& 0x7fffffff
-            h
-        let hueA = titleSeed % 360
-        let hueB = (titleSeed + 80) % 360
-        let fallbackStyle =
-            sprintf "background: linear-gradient(135deg, oklch(72%% 0.18 %d), oklch(68%% 0.16 %d));"
-                    hueA hueB
-        let foodEmoji = iconFor recipe.Title
+        // Wrap the entire show in a slide-in animator container so the
+        // transition between variants feels smooth.
+        let body =
+            Templates.MainTemplate.RecipeShow()
+                .RecipeBadge(s.RecipeLabel)
+                .RecipeTitle(recipe.Title)
+                .PrepTime(prepTimeText)
+                .RecipeImage([ (fallbackEl :> Doc); (imgEl :> Doc) ])
+                .VariantNav([ nav ])
+                .Tags(tagDocs)
+                .Steps(stepDocs)
+                .Doc()
+        Doc.Element "div" [
+            Attr.Create "class" "recipe-slide"
+            Attr.Create "data-variant" (string safeIdx)
+        ] [ body ]
 
-        // Imperative <img> so we can hook real load/error events. Inline
-        // onload/onerror attributes get stripped by WebSharper templating.
-        let imgEl =
-            Doc.Element "img" [
-                Attr.Create "src" imgUrl
-                Attr.Create "alt" recipe.Title
-                Attr.Create "loading" "lazy"
-                Attr.Create "class" "absolute inset-0 z-20 w-full h-full object-cover opacity-0 transition-opacity duration-500"
-                on.load (fun el _ -> el.SetAttribute("style", "opacity:1"))
-                on.error (fun el _ -> el.SetAttribute("style", "display:none"))
-            ] []
+    // ------------------------------------------------------------------
+    // Custom unit dropdown
+    // ------------------------------------------------------------------
 
-        // Fallback layer (always rendered behind the image; revealed if image fails)
-        let fallbackEl =
-            Doc.Element "div" [
-                Attr.Create "class" "absolute inset-0 z-10 grid place-items-center text-7xl"
-                Attr.Create "style" fallbackStyle
-                Attr.Create "aria-hidden" "true"
-            ] [
-                Doc.Element "span" [ Attr.Create "class" "drop-shadow-lg" ] [
-                    Doc.TextNode foodEmoji
-                ]
-            ]
+    let private unitOptionsFor (s: Strings.T) =
+        [ "pcs",  s.Pcs
+          "g",    s.Grams
+          "kg",   s.Kg
+          "ml",   s.Ml
+          "l",    s.Liter
+          "cup",  s.Cup
+          "tbsp", s.Tbsp
+          "tsp",  s.Tsp ]
 
-        Templates.MainTemplate.RecipeShow()
-            .RecipeBadge(s.RecipeLabel)
-            .RecipeTitle(recipe.Title)
-            .PrepTime(prepTimeText)
-            .RecipeImage([ (fallbackEl :> Doc); (imgEl :> Doc) ])
-            .VariantTabs(tabs)
-            .Tags(tagDocs)
-            .Steps(stepDocs)
-            .Doc()
+    let private unitLabel (lang: Lang) (unit: string) : string =
+        let s = Strings.table lang
+        unitOptionsFor s
+        |> List.tryFind (fun (k, _) -> k = unit)
+        |> Option.map snd
+        |> Option.defaultValue unit
+
+    let private renderUnitDropdown
+        (lang: Lang)
+        (newUnit: Var<string>)
+        (open': Var<bool>)
+        : Doc =
+        let s = Strings.table lang
+
+        // Reactive chevron rotation when the dropdown opens.
+        let chevronAttrs =
+            Attr.DynamicClassPred "rotate-180" open'.View
+
+        let trigger =
+            Templates.MainTemplate.UnitTrigger()
+                .UnitLabel(unitLabel lang newUnit.Value)
+                .ChevronAttrs(chevronAttrs)
+                .OnUnitToggle(fun _ -> open'.Value <- not open'.Value)
+                .Doc()
+
+        // Panel rendered conditionally
+        let panelView =
+            View.Map2 (fun isOpen u -> (isOpen, u)) open'.View newUnit.View
+            |> View.Map (fun (isOpen, u) ->
+                if not isOpen then Doc.Empty
+                else
+                    let opts =
+                        unitOptionsFor s
+                        |> List.map (fun (key, label) ->
+                            let isSel = key = u
+                            let cls =
+                                if isSel
+                                then Attr.Class "uo-row is-selected text-slate-900 dark:text-white"
+                                else Attr.Class "uo-row text-slate-700 dark:text-slate-200"
+                            let check =
+                                if isSel
+                                then
+                                    Doc.Element "svg" [
+                                        Attr.Create "viewBox" "0 0 24 24"
+                                        Attr.Create "class" "w-3 h-3 text-fuchsia-500 dark:text-fuchsia-300"
+                                        Attr.Create "fill" "none"
+                                        Attr.Create "stroke" "currentColor"
+                                        Attr.Create "stroke-width" "3"
+                                        Attr.Create "stroke-linecap" "round"
+                                        Attr.Create "stroke-linejoin" "round"
+                                    ] [
+                                        Doc.Element "path" [ Attr.Create "d" "M5 12l5 5L20 7" ] []
+                                    ]
+                                    :> Doc
+                                else Doc.Empty
+                            Templates.MainTemplate.UnitOption()
+                                .UnitOptLabel(label)
+                                .OptAttrs(cls)
+                                .Check([ check ])
+                                .OnUnitPick(fun _ ->
+                                    newUnit.Value <- key
+                                    open'.Value <- false)
+                                .Doc())
+                    Templates.MainTemplate.UnitPanel()
+                        .UnitOptions(opts)
+                        .Doc())
+            |> Doc.EmbedView
+
+        Doc.Concat [ trigger; panelView ]
+
+    // ------------------------------------------------------------------
+    // Suggestion dropdown
+    // ------------------------------------------------------------------
+
+    let private renderSuggestions
+        (lang: Lang)
+        (newName: Var<string>)
+        (newUnit: Var<string>)
+        (open': Var<bool>)
+        (highlightIdx: Var<int>)
+        : Doc =
+        View.Map3 (fun nm isOpen hi -> (nm, isOpen, hi)) newName.View open'.View highlightIdx.View
+        |> View.Map (fun (name, isOpen, hi) ->
+            if not isOpen then Doc.Empty
+            else
+                let suggestions = Catalog.suggest lang name 6
+                if List.isEmpty suggestions then Doc.Empty
+                else
+                    let rows =
+                        suggestions
+                        |> List.mapi (fun i s ->
+                            let displayName =
+                                match lang with En -> s.En | Hu -> s.Hu
+                            let cls =
+                                if i = hi
+                                then Attr.Class "sg-row is-active"
+                                else Attr.Class "sg-row"
+                            Templates.MainTemplate.SuggestionRow()
+                                .SuggestionIcon(s.Icon)
+                                .SuggestionName(displayName)
+                                .SuggestionUnit(unitLabel lang s.Unit)
+                                .RowAttrs(cls)
+                                .OnPickSuggestion(fun e ->
+                                    // mousedown fires before blur; preventDefault
+                                    // keeps the input focused so the form-submit
+                                    // logic still works.
+                                    e.Event.PreventDefault()
+                                    newName.Value <- displayName
+                                    newUnit.Value <- s.Unit
+                                    open'.Value <- false
+                                    highlightIdx.Value <- 0)
+                                .Doc())
+                    Templates.MainTemplate.SuggestionPanel()
+                        .SuggestionRows(rows)
+                        .Doc())
+        |> Doc.EmbedView
+
+    // ------------------------------------------------------------------
+    // Main entry
+    // ------------------------------------------------------------------
 
     let Main () : Doc =
-
         // ---- pantry items
         let items =
             ListModel.Create
@@ -347,22 +442,29 @@ module Client =
         let newUnit   = Var.Create "pcs"
         let formError = Var.Create (None: string option)
 
+        // ---- suggestion + unit-dropdown UI state
+        let suggOpen = Var.Create false
+        let suggHi   = Var.Create 0
+        let unitOpen = Var.Create false
+
         // ---- recipe state
         let recipeState = Var.Create NotRequested
 
-        // ---- language
+        // ---- language + dark mode
         let lang = Var.Create (readInitialLang ())
         applyLangAttr lang.Value
         lang.View |> View.Sink (fun l ->
             applyLangAttr l
             try JS.Window.LocalStorage.SetItem(langKey, langToCode l) with _ -> ())
 
-        // ---- dark mode
         let isDark = Var.Create (readInitialDark ())
         applyDarkClass isDark.Value
         isDark.View |> View.Sink (fun v ->
             applyDarkClass v
             try JS.Window.LocalStorage.SetItem(themeKey, if v then "dark" else "light") with _ -> ())
+
+        // ---- lang switch toast
+        let toastVisible = Var.Create false
 
         // ---- initial pantry load + image-API token fetch
         let imageToken = Var.Create ""
@@ -379,6 +481,7 @@ module Client =
         let itemCountPad  =
             itemCountView |> View.Map (fun n -> if n < 10 then "0" + string n else string n)
 
+        // ---- handlers
         let cookNow () =
             recipeState.Value <- Loading
             let l = lang.Value
@@ -390,7 +493,6 @@ module Client =
                     | Error e   -> Failed e
             } |> Async.StartImmediate
 
-        // ---- form submit
         let submitNew () =
             let s = Strings.table lang.Value
             let n = newName.Value.Trim()
@@ -418,11 +520,12 @@ module Client =
                         items.Add created
                         newName.Value <- ""
                         newQty.Value <- 1.0
+                        newUnit.Value <- "pcs"
+                        suggOpen.Value <- false
                     with ex ->
                         formError.Value <- Some ex.Message
                 } |> Async.StartImmediate
 
-        // ---- clear all
         let clearAll () =
             let s = Strings.table lang.Value
             if JS.Window.Confirm(s.ClearAllConfirm) then
@@ -431,6 +534,105 @@ module Client =
                     items.Clear()
                     recipeState.Value <- NotRequested
                 } |> Async.StartImmediate
+
+        let onLangToggle () =
+            let pantryNotEmpty = not (Seq.isEmpty items.Value)
+            let hasRecipe =
+                match recipeState.Value with
+                | Loaded _ | Failed _ -> true
+                | _ -> false
+            lang.Value <- Strings.next lang.Value
+            // If there's existing localized content, gently prompt the user.
+            if pantryNotEmpty || hasRecipe then
+                toastVisible.Value <- true
+
+        // ---- close dropdowns when clicking outside the form
+        let onGlobalMouseDown (e: Dom.Event) =
+            let target = e.Target :?> Dom.Element
+            // Close unit dropdown if click is outside any add-row element
+            let inAddRow =
+                let mutable el : Dom.Element = target
+                let mutable found = false
+                let mutable safety = 0
+                while not (isNull el) && not found && safety < 30 do
+                    let cls = el.GetAttribute("class")
+                    if not (isNull cls) && cls.Contains("add-row") then found <- true
+                    else el <- el.ParentNode :?> Dom.Element
+                    safety <- safety + 1
+                found
+            if not inAddRow then
+                if unitOpen.Value then unitOpen.Value <- false
+                if suggOpen.Value then suggOpen.Value <- false
+
+        JS.Document.AddEventListener("mousedown", onGlobalMouseDown, false)
+
+        // ---- name input handlers
+        let onNameFocus () =
+            // Re-open suggestions if the name field has any text
+            if newName.Value.Trim().Length > 0 then
+                suggOpen.Value <- true
+
+        let onNameBlur () =
+            // Defer close so a click on a suggestion still fires its mousedown
+            JS.Window.SetTimeout((fun () ->
+                suggOpen.Value <- false), 150) |> ignore
+
+        let onNameKey (e: Dom.KeyboardEvent) =
+            let count =
+                let l = lang.Value
+                Catalog.suggest l (newName.Value) 6 |> List.length
+            if count = 0 then
+                if e.Key = "Enter" then suggOpen.Value <- false
+            else
+                match e.Key with
+                | "ArrowDown" ->
+                    e.PreventDefault()
+                    suggOpen.Value <- true
+                    suggHi.Value <- (suggHi.Value + 1 + count) % count
+                | "ArrowUp" ->
+                    e.PreventDefault()
+                    suggOpen.Value <- true
+                    suggHi.Value <- (suggHi.Value - 1 + count) % count
+                | "Escape" ->
+                    suggOpen.Value <- false
+                | "Enter" ->
+                    if suggOpen.Value then
+                        e.PreventDefault()
+                        let l = lang.Value
+                        let suggestions = Catalog.suggest l (newName.Value) 6
+                        let idx =
+                            if suggHi.Value < 0 then 0
+                            elif suggHi.Value >= List.length suggestions then 0
+                            else suggHi.Value
+                        if not (List.isEmpty suggestions) then
+                            let picked = List.item idx suggestions
+                            let display =
+                                match l with En -> picked.En | Hu -> picked.Hu
+                            newName.Value <- display
+                            newUnit.Value <- picked.Unit
+                            suggOpen.Value <- false
+                            suggHi.Value <- 0
+                | _ -> ()
+
+        // ---- when user types in the name field, open suggestions and reset hi
+        newName.View |> View.Sink (fun v ->
+            let l = lang.Value
+            let any = (Catalog.suggest l v 6) |> List.isEmpty |> not
+            if v.Trim() = "" then
+                suggOpen.Value <- false
+            else
+                suggOpen.Value <- any
+            suggHi.Value <- 0
+            // Auto-fill unit if user typed an exact match
+            match Catalog.findByName v with
+            | Some s -> newUnit.Value <- s.Unit
+            | None -> ())
+
+        // ---- Lang change resets suggestion state
+        lang.View |> View.Sink (fun _ ->
+            suggHi.Value <- 0
+            suggOpen.Value <- false
+            unitOpen.Value <- false)
 
         // ---- form-error inline message
         let formErrorDoc =
@@ -489,13 +691,11 @@ module Client =
                     renderRecipe l tok recipeState bundle idx)
             |> Doc.EmbedView
 
-        // ---- string slots that depend on lang
+        // ---- string slots
         let strView (f: Strings.T -> string) : View<string> =
             lang.View |> View.Map (fun l -> f (Strings.table l))
 
-        // ---- disabled-state attrs: dynamically toggle the `disabled` HTML
-        // attribute. Empty string keeps the attr present, "" removed by setting
-        // null. We use Attr.DynamicProp on the boolean DOM `disabled` property.
+        // ---- disabled-state attrs
         let cookDisabledProp =
             View.Map2 (fun cnt st ->
                 box (cnt = 0 || st = Loading)
@@ -508,47 +708,76 @@ module Client =
 
         let langCodeView = lang.View |> View.Map Strings.code
 
+        // ---- unit dropdown Doc — re-binds with current lang/unit value
+        let unitDropdownDoc =
+            View.Map2 (fun l u -> (l, u)) lang.View newUnit.View
+            |> View.Map (fun (l, _) -> renderUnitDropdown l newUnit unitOpen)
+            |> Doc.EmbedView
+
+        // ---- suggestions Doc — re-binds when language changes so localized
+        // names + unit labels stay in sync.
+        let suggestionsDoc =
+            lang.View
+            |> View.Map (fun l -> renderSuggestions l newName newUnit suggOpen suggHi)
+            |> Doc.EmbedView
+
+        // ---- toast Doc
+        let toastDoc =
+            View.Map2 (fun visible l -> (visible, l)) toastVisible.View lang.View
+            |> View.Map (fun (visible, l) ->
+                if not visible then Doc.Empty
+                else
+                    let s = Strings.table l
+                    Templates.MainTemplate.LangToast()
+                        .ToastTitle(s.ToastTitle)
+                        .ToastBody(s.ToastBody)
+                        .ReloadLabel(s.ReloadLabel)
+                        .DismissLabel(s.DismissLabel)
+                        .OnReload(fun _ -> JS.Window.Location.Reload())
+                        .OnDismissToast(fun _ -> toastVisible.Value <- false)
+                        .Doc())
+            |> Doc.EmbedView
+
         // ---- assemble App template
-        Templates.MainTemplate.App()
-            .Tagline(strView (fun s -> s.Tagline))
-            .IngredientsCount(itemCountStr)
-            .IngredientsOnHandLabel(strView (fun s -> s.IngredientsOnHand))
-            .LangCode(langCodeView)
-            .LangBtnAttrs(Attr.Empty)
-            .OnToggleLang(fun _ -> lang.Value <- Strings.next lang.Value)
-            .OnToggleDark(fun _ -> isDark.Value <- not isDark.Value)
-            .YourPantryLabel(strView (fun s -> s.YourPantry))
-            .ItemCountPadded(itemCountPad)
-            .ItemsLabel(strView (fun s -> s.Items))
-            .ClearAllLabel(strView (fun s -> s.ClearAll))
-            .ClearBtnAttrs(clearDisabledAttr)
-            .OnClearAll(fun _ -> clearAll ())
-            .NewName(newName)
-            .NewQty(newQty)
-            .NewUnit(newUnit)
-            .AddPlaceholder(strView (fun s -> s.AddIngredientPlaceholder))
-            .AddBtnAria(strView (fun s -> s.AddBtnLabel))
-            .UnitPcs(strView  (fun s -> s.Pcs))
-            .UnitG(strView    (fun s -> s.Grams))
-            .UnitKg(strView   (fun s -> s.Kg))
-            .UnitMl(strView   (fun s -> s.Ml))
-            .UnitL(strView    (fun s -> s.Liter))
-            .UnitCup(strView  (fun s -> s.Cup))
-            .UnitTbsp(strView (fun s -> s.Tbsp))
-            .UnitTsp(strView  (fun s -> s.Tsp))
-            .OnAdd(fun e ->
-                e.Event.PreventDefault()
-                submitNew ())
-            .Items([ itemsDoc ])
-            .EmptyState([ emptyDoc ])
-            .FormError([ formErrorDoc ])
-            .PantryFootNote(View.Const "")
-            .AiChefLabel(strView (fun s -> s.AiChef))
-            .PoweredByLabel(strView (fun s -> s.PoweredBy))
-            .GenerateLabel(strView (fun s -> s.GenerateRecipe))
-            .IngredientsBadgeLabel(strView (fun s -> s.IngredientsCount))
-            .CookBtnAttrs(cookDisabledAttr)
-            .OnCook(fun _ -> cookNow ())
-            .RecipeArea([ recipeAreaDoc ])
-            .FooterText(strView (fun s -> s.FooterText))
-            .Doc()
+        let appDoc =
+            Templates.MainTemplate.App()
+                .Tagline(strView (fun s -> s.Tagline))
+                .IngredientsCount(itemCountStr)
+                .IngredientsOnHandLabel(strView (fun s -> s.IngredientsOnHand))
+                .LangCode(langCodeView)
+                .LangBtnAttrs(Attr.Empty)
+                .OnToggleLang(fun _ -> onLangToggle ())
+                .OnToggleDark(fun _ -> isDark.Value <- not isDark.Value)
+                .YourPantryLabel(strView (fun s -> s.YourPantry))
+                .ItemCountPadded(itemCountPad)
+                .ItemsLabel(strView (fun s -> s.Items))
+                .ClearAllLabel(strView (fun s -> s.ClearAll))
+                .ClearBtnAttrs(clearDisabledAttr)
+                .OnClearAll(fun _ -> clearAll ())
+                .NewName(newName)
+                .NewQty(newQty)
+                .OnNameFocus(fun _ -> onNameFocus ())
+                .OnNameBlur(fun _ -> onNameBlur ())
+                .OnNameKey(fun e -> onNameKey e.Event)
+                .AddPlaceholder(strView (fun s -> s.AddIngredientPlaceholder))
+                .AddBtnAria(strView (fun s -> s.AddBtnLabel))
+                .UnitDropdown([ unitDropdownDoc ])
+                .Suggestions([ suggestionsDoc ])
+                .OnAdd(fun e ->
+                    e.Event.PreventDefault()
+                    submitNew ())
+                .Items([ itemsDoc ])
+                .EmptyState([ emptyDoc ])
+                .FormError([ formErrorDoc ])
+                .PantryFootNote(View.Const "")
+                .AiChefLabel(strView (fun s -> s.AiChef))
+                .PoweredByLabel(strView (fun s -> s.PoweredBy))
+                .GenerateLabel(strView (fun s -> s.GenerateRecipe))
+                .IngredientsBadgeLabel(strView (fun s -> s.IngredientsCount))
+                .CookBtnAttrs(cookDisabledAttr)
+                .OnCook(fun _ -> cookNow ())
+                .RecipeArea([ recipeAreaDoc ])
+                .FooterText(strView (fun s -> s.FooterText))
+                .Doc()
+
+        Doc.Concat [ appDoc; toastDoc ]

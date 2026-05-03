@@ -301,6 +301,100 @@
   .badge-fresh   { @apply bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30; }
   .badge-soon    { @apply bg-amber-500/15  text-amber-700  dark:text-amber-300  border border-amber-500/30; }
   .badge-expired { @apply bg-rose-500/15   text-rose-700   dark:text-rose-300   border border-rose-500/30; }
+
+  /* ===== Add-row: composite pill input. Subtle hover, stronger focus-within. ===== */
+  .add-row {
+    border: 1px solid transparent;
+    transition: background-color 200ms cubic-bezier(.2,.7,.2,1),
+                border-color    200ms ease,
+                box-shadow      200ms ease,
+                transform       200ms ease;
+  }
+  .add-row:hover {
+    background: rgba(255,255,255,0.55);
+  }
+  .dark .add-row:hover {
+    background: rgba(255,255,255,0.10);
+  }
+  .add-row:focus-within {
+    border-color: oklch(70% 0.18 320 / 0.55);
+    box-shadow:
+      0 0 0 4px oklch(70% 0.18 320 / 0.18),
+      0 12px 32px -12px oklch(72% 0.18 50 / 0.4);
+    transform: translateY(-1px);
+  }
+
+  /* Active dot + idle dot in the recipe variant indicator. */
+  .var-dot {
+    width: 6px; height: 6px;
+    background: rgba(120,120,140,0.45);
+    transition: width 220ms cubic-bezier(.2,.7,.2,1),
+                background-color 200ms ease,
+                transform 180ms ease;
+  }
+  .var-dot:hover { transform: scale(1.4); }
+  .var-dot.is-active {
+    width: 22px;
+    background: linear-gradient(90deg, oklch(70% 0.18 320), oklch(72% 0.18 50));
+  }
+
+  /* Suggestion row hover: lift + bg + accent border */
+  .sg-row {
+    border: 1px solid transparent;
+  }
+  .sg-row:hover, .sg-row.is-active {
+    background: rgba(255,255,255,0.55);
+    border-color: oklch(70% 0.18 320 / 0.4);
+    transform: translateX(2px);
+  }
+  .dark .sg-row:hover, .dark .sg-row.is-active {
+    background: rgba(255,255,255,0.08);
+  }
+
+  /* Unit option row */
+  .uo-row { border: 1px solid transparent; }
+  .uo-row:hover {
+    background: rgba(255,255,255,0.55);
+  }
+  .dark .uo-row:hover {
+    background: rgba(255,255,255,0.08);
+  }
+  .uo-row.is-selected {
+    background: linear-gradient(135deg,
+      oklch(70% 0.18 320 / 0.20),
+      oklch(72% 0.18 50  / 0.20));
+    border-color: oklch(70% 0.18 320 / 0.4);
+  }
+
+  /* Item card: extra hover polish */
+  .ing-card {
+    transition: transform 250ms cubic-bezier(.2,.7,.2,1),
+                box-shadow 250ms ease,
+                border-color 250ms ease,
+                background-color 250ms ease;
+  }
+  .ing-card:hover {
+    transform: translateY(-2px) scale(1.01);
+    background: rgba(255,255,255,0.55);
+  }
+  .dark .ing-card:hover {
+    background: rgba(255,255,255,0.10);
+  }
+
+  /* Tag pulse on hover */
+  .tag {
+    transition: background-color 200ms ease, border-color 200ms ease, transform 180ms ease;
+  }
+  .tag:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Recipe variation transition: subtle slide-in when index changes */
+  @keyframes slideRecipeIn {
+    0%   { opacity: 0; transform: translateX(12px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  .recipe-slide { animation: slideRecipeIn 320ms cubic-bezier(.2,.7,.2,1) both; }
 }
 
 /* Reduced motion: disable non-essential animation/transition */

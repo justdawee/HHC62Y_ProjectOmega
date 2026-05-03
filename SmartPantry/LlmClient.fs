@@ -98,43 +98,53 @@ module LlmClient =
             then "(empty pantry)"
             else items |> List.map formatItem |> String.concat "\n"
 
-        let langInstruction, exampleTitles, exampleTags =
+        // Heavy language enforcement — Llama 3 sometimes drifts back to the
+        // language of the pantry items if not pinned hard. We open AND close
+        // the prompt with the directive, give a target-language example, and
+        // explicitly forbid translating ingredient names back to their
+        // original language inside the recipe text.
+        let langName, langDirective, exampleTitle, exampleStep, exampleTags =
             match lang with
             | En ->
-                "Reply in English. Tone: warm, concise, like a friendly chef.",
-                "[\"Quick mushroom risotto\", \"Hearty egg pancakes\", \"Creative parmesan croquettes\"]",
+                "ENGLISH",
+                "ALL natural-language fields (title, steps, tags) MUST be in ENGLISH. Translate Hungarian/foreign ingredient names into English in the recipe text — for example 'liszt' → 'flour', 'tej' → 'milk', 'tojás' → 'egg'.",
+                "Quick mushroom risotto",
+                "Whisk together 200 g of flour, 1 egg, 100 ml of milk, and a pinch of salt.",
                 "[\"quick\",\"vegetarian\"]"
             | Hu ->
-                "Válaszolj magyarul. Hangulat: barátságos, lényegre törő séf-stílus.",
-                "[\"Gyors gomba rizottó\", \"Laktató tojásos palacsinta\", \"Kreatív parmezános krokett\"]",
-                "[\"gyors\",\"vegetariánus\"]"
+                "MAGYAR (HUNGARIAN)",
+                "MINDEN természetes-nyelvi mező (cím, lépések, címkék) MAGYARUL legyen. Az angol/idegen alapanyag-neveket fordítsd magyarra a lépésekben — pl. 'flour' → 'liszt', 'milk' → 'tej', 'egg' → 'tojás'.",
+                "Gyors gombás rizottó",
+                "Keverj össze 200 g lisztet, 1 tojást, 100 ml tejet és egy csipet sót.",
+                "[\"gyors\",\"vegetáriánus\"]"
 
         let lines = [
+            sprintf "TARGET LANGUAGE: %s. %s" langName langDirective
+            ""
             "You are a creative chef. The user has these ingredients in their pantry:"
             inventory
             ""
-            "Suggest EXACTLY 3 different recipes that use these ingredients (especially the soon-to-expire ones). Make them noticeably different in style — e.g., quick / hearty / creative."
+            "TASK: Suggest EXACTLY 3 distinct recipes using these ingredients (especially the ones expiring soon)."
+            "Make them noticeably different in style: recipe #1 = QUICK & light, #2 = HEARTY & comforting, #3 = CREATIVE & playful."
             "Assume basic seasonings (salt, pepper, oil, water) are always available."
-            langInstruction
             ""
-            "RESPOND STRICTLY in this JSON format, NOTHING ELSE:"
+            "RESPOND STRICTLY in this JSON format, NOTHING ELSE — no Markdown, no commentary:"
             "{"
             "  \"recipes\": ["
             "    {"
-            "      \"title\": \"Recipe name\","
+            sprintf "      \"title\": \"%s\"," exampleTitle
             "      \"prepTimeMinutes\": 25,"
             "      \"steps\": ["
-            "        {\"stepNumber\": 1, \"instruction\": \"Step one…\"},"
-            "        {\"stepNumber\": 2, \"instruction\": \"Step two…\"}"
+            sprintf "        {\"stepNumber\": 1, \"instruction\": \"%s\"}," exampleStep
+            "        {\"stepNumber\": 2, \"instruction\": \"…\"}"
             "      ],"
             sprintf "      \"tags\": %s," exampleTags
-            "      \"imagePromptHint\": \"short ENGLISH phrase describing the finished dish on a plate, suitable for an image generator\""
-            "    }"
+            "      \"imagePromptHint\": \"short ENGLISH phrase (always English!) describing the finished dish on a plate\""
+            "    }, ... two more recipes ..."
             "  ]"
             "}"
             ""
-            sprintf "Example titles you might pick (do NOT copy literally): %s" exampleTitles
-            "ALL imagePromptHint values must be in ENGLISH regardless of the rest of the response language, since they go to an image-generation API."
+            sprintf "REMINDER: title, instruction, tags MUST be in %s. Only imagePromptHint is in ENGLISH (it feeds an image generator)." langName
         ]
         String.concat "\n" lines
 
@@ -159,11 +169,13 @@ module LlmClient =
                     let prompt = buildPrompt lang items
                     let systemMsg =
                         match lang with
-                        | En -> "You return STRICTLY valid JSON, never plain text. Reply in English."
-                        | Hu -> "You return STRICTLY valid JSON, never plain text. Reply in Hungarian (magyar)."
+                        | En ->
+                            "You return STRICTLY valid JSON, no Markdown, no commentary. Recipe content (title, steps, tags) MUST be written in ENGLISH only — translate any non-English ingredient names into English in the recipe text."
+                        | Hu ->
+                            "Csak SZIGORÚAN érvényes JSON-t adsz vissza, sem Markdown, sem kommentár. A recept tartalma (cím, lépések, címkék) KIZÁRÓLAG MAGYARUL íródjon — az idegen nevű alapanyagokat fordítsd magyarra a lépésekben."
                     let req = {
                         Model = model
-                        Temperature = 0.85
+                        Temperature = 0.7
                         ResponseFormat = { Type = "json_object" }
                         Messages = [|
                             { Role = "system"; Content = systemMsg }

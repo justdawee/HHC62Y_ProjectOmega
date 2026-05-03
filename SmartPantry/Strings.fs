@@ -61,6 +61,14 @@ module Strings =
         Alt1: string
         Alt2: string
         Alt3: string
+        PrevVariantAria: string
+        NextVariantAria: string
+
+        // language switch toast
+        ToastTitle: string
+        ToastBody: string
+        ReloadLabel: string
+        DismissLabel: string
 
         // expiry badges
         ExpiredDaysAgo: string
@@ -116,6 +124,13 @@ module Strings =
         Alt1 = "Quick"
         Alt2 = "Hearty"
         Alt3 = "Creative"
+        PrevVariantAria = "Previous variant"
+        NextVariantAria = "Next variant"
+
+        ToastTitle = "Language switched"
+        ToastBody = "Existing pantry items and the current recipe stay in their original language. Reload to refetch in English."
+        ReloadLabel = "Reload"
+        DismissLabel = "Dismiss"
 
         ExpiredDaysAgo = "Expired %d days ago"
         ExpiresToday = "Expires today"
@@ -169,6 +184,13 @@ module Strings =
         Alt1 = "Gyors"
         Alt2 = "Laktató"
         Alt3 = "Kreatív"
+        PrevVariantAria = "Előző változat"
+        NextVariantAria = "Következő változat"
+
+        ToastTitle = "Nyelv megváltozott"
+        ToastBody = "A meglévő alapanyagok és a jelenleg betöltött recept az eredeti nyelvükön maradnak. Töltsd újra az oldalt, ha mindent magyarra akarsz váltani."
+        ReloadLabel = "Újratöltés"
+        DismissLabel = "Bezár"
 
         ExpiredDaysAgo = "Lejárt %d napja"
         ExpiresToday = "Ma jár le"
