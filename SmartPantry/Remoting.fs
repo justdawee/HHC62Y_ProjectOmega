@@ -128,6 +128,25 @@ module Server =
                     | Hu -> "A kamra üres — adj hozzá legalább egy alapanyagot először."
                 return Error msg
             else
+                // Server-side safeguard: refuse to spend tokens if NOTHING in
+                // the pantry resembles a real food. Catalog hits or items that
+                // pass server-side Validation are both treated as plausible.
+                let plausible =
+                    items
+                    |> List.filter (fun it ->
+                        match Catalog.findByName it.Name with
+                        | Some _ -> true
+                        | None ->
+                            match Validation.validate it.Name with
+                            | Ok _ -> true
+                            | Error _ -> false)
+                if List.isEmpty plausible then
+                    let msg =
+                        match lang with
+                        | En -> "None of the pantry items look like real food. Add at least one recognisable ingredient before asking for a recipe."
+                        | Hu -> "Egyik kamra-elem sem tűnik valódi ételnek. Adj hozzá legalább egy felismerhető alapanyagot, mielőtt receptet kérsz."
+                    return Error msg
+                else
                 let httpClient = UserContext.getHttpClient ()
 
                 // 1) Harvest real-world inspiration recipes from TheMealDB

@@ -495,24 +495,30 @@ module Client =
             elif Double.IsNaN q || Double.IsInfinity q then
                 formError.Value <- Some s.InvalidQty
             else
-                formError.Value <- None
-                let input = {
-                    Name = n
-                    Quantity = q
-                    Unit = u
-                    ExpiryDate = None
-                }
-                async {
-                    try
-                        let! created = Server.AddItem input
-                        items.Add created
-                        newName.Value <- ""
-                        newQty.Value <- 1.0
-                        newUnit.Value <- "pcs"
-                        suggOpen.Value <- false
-                    with ex ->
-                        formError.Value <- Some ex.Message
-                } |> Async.StartImmediate
+                // Heuristic ingredient validation — blocks obvious garbage
+                // before it ever reaches the database / LLM.
+                match Validation.validate n with
+                | Error reason ->
+                    formError.Value <- Some (Validation.reasonText lang.Value reason)
+                | Ok cleanName ->
+                    formError.Value <- None
+                    let input = {
+                        Name = cleanName
+                        Quantity = q
+                        Unit = u
+                        ExpiryDate = None
+                    }
+                    async {
+                        try
+                            let! created = Server.AddItem input
+                            items.Add created
+                            newName.Value <- ""
+                            newQty.Value <- 1.0
+                            newUnit.Value <- "pcs"
+                            suggOpen.Value <- false
+                        with ex ->
+                            formError.Value <- Some ex.Message
+                    } |> Async.StartImmediate
 
         let clearAll () =
             let s = Strings.table lang.Value

@@ -262,8 +262,8 @@ module LlmClient =
                                 if List.isEmpty recipes then
                                     let m =
                                         match lang with
-                                        | En -> "The model returned no recipes — try again."
-                                        | Hu -> "A modell nem adott vissza receptet — próbáld újra."
+                                        | En -> "Couldn't come up with anything tasty from these ingredients. Try adding a few more recognisable items and ask again."
+                                        | Hu -> "Ezekből az alapanyagokból nem született ötlet. Próbálj még pár felismerhető hozzávalót, és kérj receptet újra."
                                     return Error m
                                 else
                                     return Ok ({ Recipes = recipes } : RecipeBundle)
