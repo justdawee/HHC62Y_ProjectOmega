@@ -155,43 +155,86 @@ module Server =
                         |> List.map (fun i -> i.Title.ToLower(), i.ImageUrl)
                         |> Map.ofList
 
-                    let resolveImage (recipe: Recipe) : System.Threading.Tasks.Task<string> =
+                    // Pre-extract a lookup of Catalog-mapped English ingredient
+                    // names from each recipe's hint, used as a last-resort
+                    // food-themed image fetch.
+                    let inspirationsArr =
+                        inspirations
+                        |> List.filter (fun i -> not (System.String.IsNullOrEmpty i.ImageUrl))
+                        |> Array.ofList
+
+                    let resolveImage (idx: int) (recipe: Recipe) : System.Threading.Tasks.Task<string> =
                         task {
-                            // Try exact lower-case match against inspiration list (works
-                            // when the LLM literally riffed on a real recipe name).
+                            // 1) Exact title match in the inspiration list.
                             let titleKey = recipe.Title.ToLower()
                             match Map.tryFind titleKey inspirationMap with
                             | Some url when not (System.String.IsNullOrEmpty url) ->
                                 return url
                             | _ ->
-                                // Search TheMealDB by the ENGLISH ImagePromptHint (e.g.
-                                // "creamy mushroom risotto") — the localized recipe
-                                // title may be Hungarian and would never match.
-                                let queryHint =
-                                    if System.String.IsNullOrWhiteSpace recipe.ImagePromptHint
-                                    then recipe.Title
-                                    else recipe.ImagePromptHint
-                                let! hitByHint =
-                                    MealDbClient.searchByName httpClient queryHint
-                                match hitByHint with
-                                | Some h when not (System.String.IsNullOrEmpty h.ImageUrl) ->
-                                    return h.ImageUrl
-                                | _ ->
-                                    // Final fallback: if still no hit, try the title
-                                    // verbatim — covers the EN-mode case where the
-                                    // hint and title are both English.
-                                    let! hitByTitle =
-                                        MealDbClient.searchByName httpClient recipe.Title
-                                    return
-                                        match hitByTitle with
-                                        | Some h -> h.ImageUrl
-                                        | None -> ""
+                            // 2) Search TheMealDB by the ENGLISH ImagePromptHint
+                            //    (e.g. "creamy mushroom risotto"). The localized
+                            //    recipe title may be Hungarian and would not match.
+                            let queryHint =
+                                if System.String.IsNullOrWhiteSpace recipe.ImagePromptHint
+                                then recipe.Title
+                                else recipe.ImagePromptHint
+                            let! hitByHint =
+                                MealDbClient.searchByName httpClient queryHint
+                            match hitByHint with
+                            | Some h when not (System.String.IsNullOrEmpty h.ImageUrl) ->
+                                return h.ImageUrl
+                            | _ ->
+                            // 3) Try the title verbatim (covers EN-mode where hint and
+                            //    title may both be English but differ).
+                            let! hitByTitle =
+                                MealDbClient.searchByName httpClient recipe.Title
+                            match hitByTitle with
+                            | Some h when not (System.String.IsNullOrEmpty h.ImageUrl) ->
+                                return h.ImageUrl
+                            | _ ->
+                            // 4) Filter TheMealDB by the first Catalog-recognised
+                            //    English ingredient mentioned in the hint. This
+                            //    sometimes yields an unrelated dish but at least
+                            //    a thematic photo (e.g. "mushroom" -> any mushroom dish).
+                            let candidateWords =
+                                queryHint.Split(
+                                    [| ' '; ','; '-'; '/' |],
+                                    System.StringSplitOptions.RemoveEmptyEntries)
+                                |> Array.choose (fun w ->
+                                    match Catalog.findByName w with
+                                    | Some s -> Some s.En
+                                    | None -> None)
+                            let mutable filterHit = ""
+                            let mutable wi = 0
+                            while filterHit = "" && wi < candidateWords.Length do
+                                let! batch =
+                                    MealDbClient.filterByIngredient httpClient candidateWords.[wi]
+                                    |> Async.AwaitTask
+                                let firstWithImg =
+                                    batch
+                                    |> List.tryFind (fun i -> not (System.String.IsNullOrEmpty i.ImageUrl))
+                                match firstWithImg with
+                                | Some h -> filterHit <- h.ImageUrl
+                                | None -> ()
+                                wi <- wi + 1
+                            if filterHit <> "" then
+                                return filterHit
+                            else
+                            // 5) Absolute last resort: deterministically pick from the
+                            //    already-fetched inspirations so every recipe always
+                            //    shows SOME food photo. We pick by variant index so
+                            //    each variant gets a different image when possible.
+                            if inspirationsArr.Length = 0 then return ""
+                            else
+                                let pickIdx = idx % inspirationsArr.Length
+                                return inspirationsArr.[pickIdx].ImageUrl
                         }
 
-                    // Run image lookups in parallel.
+                    // Run image lookups in parallel; index lets the deterministic
+                    // last-resort pick spread across variants.
                     let lookupTasks =
                         bundle.Recipes
-                        |> List.map (fun r -> resolveImage r)
+                        |> List.mapi (fun i r -> resolveImage i r)
                         |> Array.ofList
                     let! urls =
                         System.Threading.Tasks.Task.WhenAll(lookupTasks)

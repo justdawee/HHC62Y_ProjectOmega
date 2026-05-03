@@ -540,20 +540,11 @@ module Client =
         // we had previously misclassified clicks inside the dropdown panel
         // (which is positioned absolute but DOM-wise still inside .add-row,
         // yet some browsers reparent in subtle ways during animations).
-        let matches (target: obj) (selector: string) : bool =
-            JS.Inline<obj -> string -> bool>(
-                "function(t, s) { return !!(t && t.closest && t.closest(s)); }"
-            ) target selector
-
-        let onGlobalMouseDown (e: Dom.Event) =
-            let target = e.Target
-            let insideForm  = matches target ".add-row"
-            let insidePopup = matches target "[data-popup]"
-            if not insideForm && not insidePopup then
-                if unitOpen.Value then unitOpen.Value <- false
-                if suggOpen.Value then suggOpen.Value <- false
-
-        JS.Document.AddEventListener("mousedown", onGlobalMouseDown, false)
+        // (Click-outside dismiss is implemented further down via an invisible
+        // full-viewport click-shield Doc rendered behind the popups; that's
+        // more robust than wiring a global document listener through
+        // WebSharper's JS interop.)
+        ()
 
         // ---- name input handlers
         let onNameFocus () =
@@ -709,6 +700,26 @@ module Client =
             |> View.Map (fun l -> renderSuggestions l newName newUnit suggOpen suggHi)
             |> Doc.EmbedView
 
+        // ---- click-shield: an invisible full-viewport overlay rendered
+        // behind any open popup (z-40 vs panel z-50). Clicking it closes
+        // both popups, which is the only thing we need for the
+        // click-outside dismiss behavior.
+        let popupAnyOpenView =
+            View.Map2 (fun u s -> u || s) unitOpen.View suggOpen.View
+        let clickShieldDoc =
+            popupAnyOpenView
+            |> View.Map (fun anyOpen ->
+                if not anyOpen then Doc.Empty
+                else
+                    Doc.Element "div" [
+                        Attr.Create "class" "fixed inset-0 z-40"
+                        Attr.Create "aria-hidden" "true"
+                        on.mouseDown (fun _ _ ->
+                            unitOpen.Value <- false
+                            suggOpen.Value <- false)
+                    ] [] :> Doc)
+            |> Doc.EmbedView
+
         // ---- toast Doc
         let toastDoc =
             View.Map2 (fun visible l -> (visible, l)) toastVisible.View lang.View
@@ -769,4 +780,4 @@ module Client =
                 .FooterAuthor(strView (fun s -> s.FooterAuthor))
                 .Doc()
 
-        Doc.Concat [ appDoc; toastDoc ]
+        Doc.Concat [ appDoc; clickShieldDoc; toastDoc ]

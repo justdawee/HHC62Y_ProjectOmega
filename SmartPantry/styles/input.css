@@ -406,8 +406,13 @@
     background: rgba(255,255,255,0.08);
   }
 
-  /* Unit option row */
-  .uo-row { border: 1px solid transparent; }
+  /* Unit option row — full-width, left-aligned, with a left accent stripe
+     when selected. The entire row is the click target. */
+  .uo-row {
+    border: 1px solid transparent;
+    border-left-width: 2px;
+    border-left-color: transparent;
+  }
   .uo-row:hover {
     background: rgba(255,255,255,0.55);
   }
@@ -415,10 +420,16 @@
     background: rgba(255,255,255,0.08);
   }
   .uo-row.is-selected {
-    background: linear-gradient(135deg,
-      oklch(70% 0.18 320 / 0.20),
-      oklch(72% 0.18 50  / 0.20));
-    border-color: oklch(70% 0.18 320 / 0.4);
+    background: linear-gradient(90deg,
+      oklch(70% 0.18 320 / 0.18),
+      oklch(70% 0.18 320 / 0));
+    border-left-color: oklch(70% 0.18 320 / 0.95);
+  }
+  .dark .uo-row.is-selected {
+    background: linear-gradient(90deg,
+      oklch(70% 0.18 320 / 0.28),
+      oklch(70% 0.18 320 / 0));
+    border-left-color: oklch(80% 0.18 320 / 0.9);
   }
 
   /* Item card: extra hover polish */
