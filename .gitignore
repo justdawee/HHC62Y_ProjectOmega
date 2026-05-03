@@ -23,6 +23,10 @@ artifacts/
 .websharper/
 *.dll.compiled
 WebSharper.Compiled.*
+SmartPantry/websharper.log
+SmartPantry/build/
+SmartPantry/wwwroot/Scripts/
+SmartPantry/wwwroot/Content/
 
 # --- Tailwind / Node ---
 node_modules/
