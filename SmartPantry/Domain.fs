@@ -5,7 +5,9 @@ open WebSharper
 
 /// A single ingredient record in a user's pantry. Persisted to SQLite, also serialized
 /// over the WebSharper RPC boundary, so the type must round-trip safely.
-[<JavaScript>]
+/// `[<CLIMutable>]` adds a parameterless constructor so Dapper can materialize rows
+/// via property setters (and apply registered Option type handlers).
+[<JavaScript; CLIMutable>]
 type PantryItem = {
     Id: int
     UserId: string
@@ -17,7 +19,7 @@ type PantryItem = {
 
 /// Data sent by the client when creating a new pantry item. UserId is added on the server
 /// from the cookie — the client never gets to set it.
-[<JavaScript>]
+[<JavaScript; CLIMutable>]
 type PantryItemInput = {
     Name: string
     Quantity: float
@@ -26,14 +28,14 @@ type PantryItemInput = {
 }
 
 /// One step of an LLM-generated recipe.
-[<JavaScript>]
+[<JavaScript; CLIMutable>]
 type RecipeStep = {
     StepNumber: int
     Instruction: string
 }
 
 /// Final structured recipe returned to the client.
-[<JavaScript>]
+[<JavaScript; CLIMutable>]
 type Recipe = {
     Title: string
     PrepTimeMinutes: int

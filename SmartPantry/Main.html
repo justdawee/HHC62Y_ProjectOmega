@@ -9,73 +9,65 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
 
     <link rel="stylesheet" href="/css/output.css" />
   </head>
   <body class="text-slate-800 dark:text-slate-100 grain min-h-screen">
+    <div ws-replace="Body"></div>
+    <script ws-replace="scripts"></script>
+  </body>
+</html>
 
-    <!-- Ambient mesh + drifting orbs -->
-    <div class="mesh-bg" aria-hidden="true">
-      <div class="orb orb-1"></div>
-      <div class="orb orb-2"></div>
-      <div class="orb orb-3"></div>
+<!-- =====================================================
+     Client-side: full reactive app surface
+     ===================================================== -->
+<div ws-template="App">
+
+  <!-- Ambient mesh + drifting orbs -->
+  <div class="mesh-bg" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- Header / nav -->
+  <header class="relative z-10 px-4 sm:px-8 py-5 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <span aria-hidden="true" class="grid place-items-center w-9 h-9 rounded-2xl glass-inset">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2c2.5 3 4 5 4 8a4 4 0 1 1-8 0c0-3 1.5-5 4-8z"></path>
+          <path d="M5 22c0-3 3-6 7-6s7 3 7 6"></path>
+        </svg>
+      </span>
+      <span class="text-xl sm:text-2xl font-semibold tracking-tight logo-grad">SmartPantry</span>
     </div>
 
-    <!-- Header / nav -->
-    <header class="relative z-10 px-4 sm:px-8 py-5 flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2.5 group">
-        <span aria-hidden="true" class="grid place-items-center w-9 h-9 rounded-2xl glass-inset">
-          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2c2.5 3 4 5 4 8a4 4 0 1 1-8 0c0-3 1.5-5 4-8z"></path>
-            <path d="M5 22c0-3 3-6 7-6s7 3 7 6"></path>
-          </svg>
-        </span>
-        <span class="text-xl sm:text-2xl font-semibold tracking-tight logo-grad">SmartPantry</span>
-      </a>
-
-      <div class="flex items-center gap-2">
-        <button
-          ws-onclick="OnToggleDark"
-          aria-label="Téma váltás"
-          class="ring-soft glass rounded-full w-10 h-10 grid place-items-center transition hover:scale-105 active:scale-95"
-        >
-          <!-- Sun -->
-          <svg class="w-4 h-4 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="4"></circle>
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
-          </svg>
-          <!-- Moon -->
-          <svg class="w-4 h-4 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        </button>
-      </div>
-    </header>
-
-    <!-- Main content -->
-    <main class="relative z-10 px-4 sm:px-8 pb-32 max-w-6xl mx-auto">
-      <div ws-replace="Body"></div>
-    </main>
-
-    <!-- Sticky CTA (recipe generation) -->
-    <div class="fixed bottom-0 inset-x-0 z-20 pointer-events-none">
-      <div class="max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-6 flex justify-center">
-        <div class="pointer-events-auto" ws-replace="StickyCta"></div>
-      </div>
+    <div class="flex items-center gap-2">
+      <button
+        ws-onclick="OnToggleDark"
+        type="button"
+        aria-label="Téma váltás"
+        class="ring-soft glass rounded-full w-10 h-10 grid place-items-center transition hover:scale-105 active:scale-95"
+      >
+        <svg class="w-4 h-4 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+        </svg>
+        <svg class="w-4 h-4 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
     </div>
+  </header>
 
-    <!-- Recipe modal portal -->
-    <div ws-replace="Modal"></div>
+  <!-- Main grid -->
+  <main class="relative z-10 px-4 sm:px-8 pb-32 max-w-6xl mx-auto">
+    <div class="grid lg:grid-cols-[420px_1fr] gap-6 lg:gap-8 mt-2 sm:mt-6">
 
-    <!-- =====================================================
-         Inner client-side template: the entire reactive app
-         ===================================================== -->
-    <div ws-template="App" class="grid lg:grid-cols-[420px_1fr] gap-6 lg:gap-8 mt-2 sm:mt-6">
-
-      <!-- =========== Left column: add-ingredient form =========== -->
+      <!-- Add-ingredient form -->
       <section class="glass rounded-3xl p-5 sm:p-7 lift" aria-labelledby="add-h">
         <header class="flex items-baseline justify-between mb-5">
           <h2 id="add-h" class="font-serif italic text-2xl sm:text-3xl">Új alapanyag</h2>
@@ -144,7 +136,7 @@
         </p>
       </section>
 
-      <!-- =========== Right column: pantry grid =========== -->
+      <!-- Pantry grid -->
       <section aria-labelledby="pantry-h">
         <header class="flex items-baseline justify-between px-2 mb-4">
           <h2 id="pantry-h" class="font-serif italic text-2xl sm:text-3xl">A kamrád</h2>
@@ -153,177 +145,168 @@
           </span>
         </header>
 
-        <!-- Empty state -->
         <div ws-replace="EmptyState"></div>
-
-        <!-- Items grid -->
         <div ws-replace="Items" class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4"></div>
       </section>
     </div>
+  </main>
 
-    <!-- =====================================================
-         Sub-template: a single ingredient card
-         ===================================================== -->
-    <div ws-template="ItemCard"
-         class="ing-card glass rounded-2xl p-4 lift relative animate-addPop"
-         aria-label="${Name}, ${QtyDisplay}"
+  <!-- Sticky CTA -->
+  <div class="fixed bottom-0 inset-x-0 z-20 pointer-events-none">
+    <div class="max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-6 flex justify-center">
+      <div class="pointer-events-auto" ws-replace="StickyCta"></div>
+    </div>
+  </div>
+
+  <!-- Modal portal -->
+  <div ws-replace="Modal"></div>
+</div>
+
+<!-- =====================================================
+     Sub-templates
+     ===================================================== -->
+<div ws-template="ItemCard"
+     class="ing-card glass rounded-2xl p-4 lift relative animate-addPop"
+     aria-label="${Name}, ${QtyDisplay}"
+>
+  <button
+    ws-onclick="OnDelete"
+    type="button"
+    class="del-btn absolute top-2 right-2 w-8 h-8 grid place-items-center rounded-full
+           bg-rose-500/15 hover:bg-rose-500/30 text-rose-600 dark:text-rose-300 border border-rose-500/30 ring-soft"
+    aria-label="${Name} törlése"
+  >
+    <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+    </svg>
+  </button>
+
+  <div class="flex items-baseline justify-between gap-2 pr-8">
+    <h3 class="font-medium text-base sm:text-lg leading-tight break-words">${Name}</h3>
+  </div>
+
+  <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 font-mono">${QtyDisplay}</p>
+
+  <div ws-replace="ExpiryBadge" class="mt-3"></div>
+</div>
+
+<div ws-template="EmptyPantry"
+     class="glass rounded-3xl p-10 text-center"
+>
+  <div class="mx-auto w-16 h-16 grid place-items-center rounded-2xl glass-inset mb-4">
+    <svg viewBox="0 0 24 24" class="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 7l9-4 9 4-9 4-9-4z"></path>
+      <path d="M3 7v10l9 4 9-4V7"></path>
+      <path d="M3 12l9 4 9-4"></path>
+    </svg>
+  </div>
+  <p class="font-serif italic text-2xl mb-1">A kamrád üres</p>
+  <p class="text-sm text-slate-500 dark:text-slate-400">Adj hozzá egy alapanyagot — utána javasolhatok hozzá receptet.</p>
+</div>
+
+<div ws-template="CookCta">
+  <button
+    ws-onclick="OnCook"
+    type="button"
+    class="cta-glow rounded-full px-6 sm:px-8 py-3.5 sm:py-4 font-semibold tracking-tight ring-soft inline-flex items-center gap-2 text-sm sm:text-base shadow-2xl"
+  >
+    <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2v6M5.5 8a6.5 6.5 0 0 1 13 0v3a6.5 6.5 0 0 1-13 0V8z"></path>
+      <path d="M3 16h18M5 20h14"></path>
+    </svg>
+    <span>${CookLabel}</span>
+  </button>
+</div>
+
+<div ws-template="RecipeModal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="recipe-title"
+     class="fixed inset-0 z-30 grid place-items-center p-4 sm:p-8 animate-backdropIn"
+>
+  <button
+    ws-onclick="OnCloseModal"
+    type="button"
+    class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-sm cursor-default"
+    aria-label="Bezárás"
+    tabindex="-1"
+  ></button>
+
+  <div class="relative w-full max-w-2xl glass rounded-3xl p-6 sm:p-8 max-h-[88vh] overflow-y-auto animate-modalIn">
+    <button
+      ws-onclick="OnCloseModal"
+      type="button"
+      class="absolute top-4 right-4 w-9 h-9 grid place-items-center rounded-full glass-inset ring-soft hover:scale-105 active:scale-95 transition"
+      aria-label="Modal bezárása"
     >
-      <button
-        ws-onclick="OnDelete"
-        class="del-btn absolute top-2 right-2 w-8 h-8 grid place-items-center rounded-full
-               bg-rose-500/15 hover:bg-rose-500/30 text-rose-600 dark:text-rose-300 border border-rose-500/30 ring-soft"
-        aria-label="${Name} törlése"
-      >
-        <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-        </svg>
-      </button>
+      <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6L6 18M6 6l12 12"></path>
+      </svg>
+    </button>
 
-      <div class="flex items-baseline justify-between gap-2 pr-8">
-        <h3 class="font-medium text-base sm:text-lg leading-tight break-words">${Name}</h3>
-      </div>
+    <div ws-replace="ModalBody"></div>
+  </div>
+</div>
 
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 font-mono">${QtyDisplay}</p>
+<div ws-template="RecipeLoading">
+  <div class="flex items-center gap-2 mb-4">
+    <span class="pulse-dot inline-block w-2 h-2 rounded-full bg-fuchsia-400"></span>
+    <span class="text-sm text-slate-500 dark:text-slate-400">A séf gondolkodik…</span>
+  </div>
+  <div class="skeleton h-9 w-2/3 rounded-xl mb-3"></div>
+  <div class="skeleton h-4 w-24 rounded-full mb-6"></div>
+  <div class="space-y-3">
+    <div class="skeleton h-4 w-full rounded-md"></div>
+    <div class="skeleton h-4 w-11/12 rounded-md"></div>
+    <div class="skeleton h-4 w-10/12 rounded-md"></div>
+    <div class="skeleton h-4 w-9/12 rounded-md"></div>
+  </div>
+</div>
 
-      <div ws-replace="ExpiryBadge" class="mt-3"></div>
-    </div>
+<div ws-template="RecipeLoaded">
+  <p class="text-xs uppercase tracking-widest text-fuchsia-500 dark:text-fuchsia-300 mb-2">Recept</p>
+  <h2 id="recipe-title" class="font-serif italic text-3xl sm:text-4xl leading-tight mb-3">${RecipeTitle}</h2>
 
-    <!-- =====================================================
-         Sub-template: empty pantry CTA
-         ===================================================== -->
-    <div ws-template="EmptyPantry"
-         class="glass rounded-3xl p-10 text-center"
-    >
-      <div class="mx-auto w-16 h-16 grid place-items-center rounded-2xl glass-inset mb-4">
-        <svg viewBox="0 0 24 24" class="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 7l9-4 9 4-9 4-9-4z"></path>
-          <path d="M3 7v10l9 4 9-4V7"></path>
-          <path d="M3 12l9 4 9-4"></path>
-        </svg>
-      </div>
-      <p class="font-serif italic text-2xl mb-1">A kamrád üres</p>
-      <p class="text-sm text-slate-500 dark:text-slate-400">Adj hozzá egy alapanyagot — utána javasolhatok hozzá receptet.</p>
-    </div>
+  <div class="flex flex-wrap items-center gap-2 mb-6">
+    <span class="tag rounded-full px-3 py-1 text-xs font-mono inline-flex items-center gap-1">
+      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 7v5l3 2"></path>
+      </svg>
+      ${PrepTime}
+    </span>
+    <div ws-replace="Tags" class="contents"></div>
+  </div>
 
-    <!-- =====================================================
-         Sub-template: sticky "What should I cook?" CTA
-         ===================================================== -->
-    <div ws-template="CookCta">
-      <button
-        ws-onclick="OnCook"
-        ws-attr="CookAttrs"
-        class="cta-glow rounded-full px-6 sm:px-8 py-3.5 sm:py-4 font-semibold tracking-tight ring-soft inline-flex items-center gap-2 text-sm sm:text-base shadow-2xl"
-      >
-        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2v6M5.5 8a6.5 6.5 0 0 1 13 0v3a6.5 6.5 0 0 1-13 0V8z"></path>
-          <path d="M3 16h18M5 20h14"></path>
-        </svg>
-        <span>${CookLabel}</span>
-      </button>
-    </div>
+  <ol class="space-y-4">
+    <div ws-replace="Steps" class="contents"></div>
+  </ol>
+</div>
 
-    <!-- =====================================================
-         Sub-template: recipe modal
-         ===================================================== -->
-    <div ws-template="RecipeModal"
-         role="dialog"
-         aria-modal="true"
-         aria-labelledby="recipe-title"
-         class="fixed inset-0 z-30 grid place-items-center p-4 sm:p-8 animate-backdropIn"
-    >
-      <button
-        ws-onclick="OnCloseModal"
-        class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-sm cursor-default"
-        aria-label="Bezárás"
-        tabindex="-1"
-      ></button>
+<li ws-template="RecipeStepItem"
+    class="flex items-start gap-3 animate-stepIn"
+    style="animation-delay: ${Delay}"
+>
+  <span class="step-num shrink-0 w-8 h-8 rounded-full grid place-items-center text-white font-semibold text-sm">${StepN}</span>
+  <span class="leading-relaxed text-slate-700 dark:text-slate-200 pt-1">${Instruction}</span>
+</li>
 
-      <div class="relative w-full max-w-2xl glass rounded-3xl p-6 sm:p-8 max-h-[88vh] overflow-y-auto animate-modalIn">
-        <button
-          ws-onclick="OnCloseModal"
-          class="absolute top-4 right-4 w-9 h-9 grid place-items-center rounded-full glass-inset ring-soft hover:scale-105 active:scale-95 transition"
-          aria-label="Modal bezárása"
-        >
-          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 6L6 18M6 6l12 12"></path>
-          </svg>
-        </button>
+<span ws-template="RecipeTagBadge" class="tag rounded-full px-3 py-1 text-xs font-medium">${TagText}</span>
 
-        <div ws-replace="ModalBody"></div>
-      </div>
-    </div>
+<div ws-template="RecipeError">
+  <h2 class="font-serif italic text-2xl mb-3">Hopp — valami félrement</h2>
+  <p class="badge badge-expired px-3 py-1 mb-4">${ErrorMessage}</p>
+  <button
+    ws-onclick="OnCook"
+    type="button"
+    class="cta-glow rounded-2xl px-5 py-2.5 text-sm font-semibold ring-soft"
+  >
+    Próbáljuk újra
+  </button>
+</div>
 
-    <!-- Recipe loading skeleton (used inside modal body) -->
-    <div ws-template="RecipeLoading">
-      <div class="flex items-center gap-2 mb-4">
-        <span class="pulse-dot inline-block w-2 h-2 rounded-full bg-fuchsia-400"></span>
-        <span class="text-sm text-slate-500 dark:text-slate-400">A séf gondolkodik…</span>
-      </div>
-      <div class="skeleton h-9 w-2/3 rounded-xl mb-3"></div>
-      <div class="skeleton h-4 w-24 rounded-full mb-6"></div>
-      <div class="space-y-3">
-        <div class="skeleton h-4 w-full rounded-md"></div>
-        <div class="skeleton h-4 w-11/12 rounded-md"></div>
-        <div class="skeleton h-4 w-10/12 rounded-md"></div>
-        <div class="skeleton h-4 w-9/12 rounded-md"></div>
-      </div>
-    </div>
+<p ws-template="InlineError" class="text-sm text-rose-600 dark:text-rose-300 animate-shake">${ErrorText}</p>
 
-    <!-- Recipe loaded body -->
-    <div ws-template="RecipeLoaded">
-      <p class="text-xs uppercase tracking-widest text-fuchsia-500 dark:text-fuchsia-300 mb-2">Recept</p>
-      <h2 id="recipe-title" class="font-serif italic text-3xl sm:text-4xl leading-tight mb-3">${RecipeTitle}</h2>
-
-      <div class="flex flex-wrap items-center gap-2 mb-6">
-        <span class="tag rounded-full px-3 py-1 text-xs font-mono inline-flex items-center gap-1">
-          <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"></circle>
-            <path d="M12 7v5l3 2"></path>
-          </svg>
-          ${PrepTime}
-        </span>
-        <div ws-replace="Tags" class="contents"></div>
-      </div>
-
-      <ol class="space-y-4">
-        <div ws-replace="Steps" class="contents"></div>
-      </ol>
-    </div>
-
-    <!-- One step inside the recipe -->
-    <li ws-template="RecipeStepItem"
-        class="flex items-start gap-3 animate-stepIn"
-        style="animation-delay: ${Delay}"
-    >
-      <span class="step-num shrink-0 w-8 h-8 rounded-full grid place-items-center text-white font-semibold text-sm">${StepN}</span>
-      <span class="leading-relaxed text-slate-700 dark:text-slate-200 pt-1">${Instruction}</span>
-    </li>
-
-    <!-- A single recipe tag -->
-    <span ws-template="RecipeTagBadge" class="tag rounded-full px-3 py-1 text-xs font-medium">${TagText}</span>
-
-    <!-- Recipe error body -->
-    <div ws-template="RecipeError">
-      <h2 class="font-serif italic text-2xl mb-3">Hopp — valami félrement</h2>
-      <p class="badge badge-expired px-3 py-1 mb-4">${ErrorMessage}</p>
-      <button
-        ws-onclick="OnCook"
-        class="cta-glow rounded-2xl px-5 py-2.5 text-sm font-semibold ring-soft"
-      >
-        Próbáljuk újra
-      </button>
-    </div>
-
-    <!-- Inline form-level error -->
-    <p ws-template="InlineError"
-       class="text-sm text-rose-600 dark:text-rose-300 animate-shake"
-    >${ErrorText}</p>
-
-    <!-- Expiry badge variants -->
-    <span ws-template="BadgeFresh"   class="badge badge-fresh">${BadgeText}</span>
-    <span ws-template="BadgeSoon"    class="badge badge-soon pulse-dot">${BadgeText}</span>
-    <span ws-template="BadgeExpired" class="badge badge-expired">${BadgeText}</span>
-
-    <script ws-replace="scripts"></script>
-  </body>
-</html>
+<span ws-template="BadgeFresh"   class="badge badge-fresh">${BadgeText}</span>
+<span ws-template="BadgeSoon"    class="badge badge-soon pulse-dot">${BadgeText}</span>
+<span ws-template="BadgeExpired" class="badge badge-expired">${BadgeText}</span>

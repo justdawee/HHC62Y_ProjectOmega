@@ -27,7 +27,6 @@ let private spUidMiddleware (ctx: HttpContext) (next: RequestDelegate) =
             opts.Path <- "/"
             ctx.Response.Cookies.Append(UserContext.cookieName, uid, opts)
 
-        ctx.Items.["UserId"] <- uid
         do! next.Invoke(ctx)
     } :> System.Threading.Tasks.Task
 

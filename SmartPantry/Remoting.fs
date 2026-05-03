@@ -12,24 +12,55 @@ module UserContext =
 
     let cookieName = "sp_uid"
 
-    /// Pulls the UserId off HttpContext.Items where the cookie middleware
-    /// stashed it. Falls back to a fresh GUID for the unlikely race where the
-    /// middleware did not run (e.g. RPC called outside an HTTP request).
-    let currentUserId () : string =
+    /// Pulls the HttpContext for the current RPC request from WebSharper's context env.
+    /// WebSharper.AspNetCore stashes the HttpContext under the literal key
+    /// "WebSharper.AspNetCore.HttpContext"; older docs sometimes show "HttpContext".
+    /// We try a few candidates so the code is resilient to either convention,
+    /// and fall back to scanning the dict for any HttpContext value.
+    let private httpContext () : HttpContext =
         let ctx = Web.Remoting.GetContext()
-        let httpCtx = ctx.Environment.["HttpContext"] :?> HttpContext
-        match httpCtx.Items.TryGetValue("UserId") with
-        | true, (:? string as uid) when not (String.IsNullOrEmpty uid) -> uid
-        | _ ->
-            // Fallback — should not happen in practice because middleware runs first.
+        let candidates = [
+            "WebSharper.AspNetCore.HttpContext"
+            "HttpContext"
+            "Microsoft.AspNetCore.Http.HttpContext"
+        ]
+        let tryKey (k: string) =
+            let mutable boxed : obj = null
+            if ctx.Environment.TryGetValue(k, &boxed) && (boxed :? HttpContext)
+            then Some (boxed :?> HttpContext)
+            else None
+        candidates
+        |> List.tryPick tryKey
+        |> Option.defaultWith (fun () ->
+            let any =
+                ctx.Environment
+                |> Seq.tryPick (fun kvp ->
+                    if kvp.Value :? HttpContext then Some (kvp.Value :?> HttpContext) else None)
+            match any with
+            | Some h -> h
+            | None ->
+                let keys = ctx.Environment |> Seq.map (fun kvp -> kvp.Key) |> String.concat ", "
+                failwithf "No HttpContext in WebSharper Environment. Known keys: %s" keys)
+
+    /// Resolves the user identity straight from the request cookie. The
+    /// middleware guarantees the cookie is set before any RPC handler runs.
+    /// We avoid HttpContext.Items because F#'s dict-extension wraps keys in
+    /// StructBox and clashes with the underlying IDictionary<object,object?>.
+    let currentUserId () : string =
+        let http = httpContext ()
+        let mutable v = ""
+        if http.Request.Cookies.TryGetValue(cookieName, &v) && not (String.IsNullOrWhiteSpace v) then
+            v
+        else
+            // Fallback — should not happen because middleware appends the cookie
+            // on the response and subsequent RPC posts include it.
             Guid.NewGuid().ToString("N")
 
     /// Pulls the IHttpClientFactory off DI to avoid HttpClient socket leaks.
     let getHttpClient () : HttpClient =
-        let ctx = Web.Remoting.GetContext()
-        let httpCtx = ctx.Environment.["HttpContext"] :?> HttpContext
+        let http = httpContext ()
         let factory =
-            httpCtx.RequestServices.GetService(typeof<IHttpClientFactory>)
+            http.RequestServices.GetService(typeof<IHttpClientFactory>)
             :?> IHttpClientFactory
         factory.CreateClient("groq")
 
