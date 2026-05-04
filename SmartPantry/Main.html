@@ -38,12 +38,12 @@
   </div>
 
   <!-- ============== Header ============== -->
-  <header class="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 pt-5">
-    <div class="glass rounded-2xl px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
+  <header class="relative z-10 mx-auto w-full max-w-7xl px-3 sm:px-6 pt-4 sm:pt-5">
+    <div class="glass rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3">
 
       <!-- Logo + tagline -->
-      <div class="flex items-center gap-3 min-w-0">
-        <span aria-hidden="true" class="grid place-items-center w-10 h-10 rounded-2xl logo-tile shrink-0">
+      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <span aria-hidden="true" class="grid place-items-center w-9 h-9 sm:w-10 sm:h-10 rounded-2xl logo-tile shrink-0">
           <svg viewBox="0 0 24 24" class="w-7 h-7" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <defs>
               <linearGradient id="leafStroke" x1="0" y1="0" x2="1" y2="1">
@@ -72,20 +72,20 @@
       </div>
 
       <!-- Right: lang + theme toggles -->
-      <div class="flex items-center gap-2 shrink-0">
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <button
           ws-onclick="OnToggleLang"
           ws-attr="LangBtnAttrs"
           type="button"
           aria-label="Switch language"
-          class="ring-soft glass-inset rounded-full px-3 h-9 text-xs font-mono tracking-wider hover:scale-105 active:scale-95 transition"
+          class="ring-soft glass-inset rounded-full px-2.5 sm:px-3 h-8 sm:h-9 text-xs font-mono tracking-wider hover:scale-105 active:scale-95 transition"
         >${LangCode}</button>
 
         <button
           ws-onclick="OnToggleDark"
           aria-label="Toggle theme"
           type="button"
-          class="ring-soft glass-inset rounded-full w-9 h-9 grid place-items-center hover:scale-105 active:scale-95 transition"
+          class="ring-soft glass-inset rounded-full w-8 h-8 sm:w-9 sm:h-9 grid place-items-center hover:scale-105 active:scale-95 transition"
         >
           <svg class="w-4 h-4 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="4"></circle>
@@ -100,15 +100,15 @@
   </header>
 
   <!-- ============== Main grid ============== -->
-  <main class="relative z-10 flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
-    <div class="grid lg:grid-cols-2 gap-5 lg:gap-6">
+  <main class="relative z-10 flex-1 mx-auto w-full max-w-7xl px-3 sm:px-6 py-4 sm:py-8">
+    <div class="grid lg:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
 
       <!-- ==== LEFT: pantry ==== -->
-      <section class="glass rounded-3xl p-5 sm:p-7" aria-labelledby="pantry-h">
-        <header class="flex items-end justify-between gap-3 mb-5">
-          <div class="flex items-baseline gap-3 min-w-0">
-            <h2 id="pantry-h" class="text-2xl sm:text-3xl font-semibold tracking-tight">${YourPantryLabel}</h2>
-            <span class="text-xs font-mono text-slate-500 dark:text-slate-400 tabular-nums shrink-0">${ItemCountPadded} ${ItemsLabel}</span>
+      <section class="glass rounded-3xl p-4 sm:p-7" aria-labelledby="pantry-h">
+        <header class="flex items-end justify-between gap-2 mb-4 sm:mb-5">
+          <div class="flex items-baseline gap-2 sm:gap-3 min-w-0">
+            <h2 id="pantry-h" class="text-xl sm:text-3xl font-semibold tracking-tight">${YourPantryLabel}</h2>
+            <span class="text-[11px] sm:text-xs font-mono text-slate-500 dark:text-slate-400 tabular-nums shrink-0">${ItemCountPadded} ${ItemsLabel}</span>
           </div>
           <button
             ws-onclick="OnClearAll"
@@ -121,9 +121,9 @@
         <!-- Add row: pill-shaped composite input + autocomplete dropdown.
              .add-row-form gives a fresh stacking context above the pantry
              grid so the floating panels stay clickable. -->
-        <form ws-onsubmit="OnAdd" class="add-row-form mb-5 relative">
-          <div class="add-row flex items-stretch gap-1.5 glass-inset rounded-full p-1.5 pl-2 transition-all duration-200">
-            <span aria-hidden="true" class="grid place-items-center w-7 shrink-0 text-slate-500 dark:text-slate-400 transition">
+        <form ws-onsubmit="OnAdd" class="add-row-form mb-4 sm:mb-5 relative">
+          <div class="add-row flex items-stretch gap-1 sm:gap-1.5 glass-inset rounded-full p-1 sm:p-1.5 pl-1.5 sm:pl-2 transition-all duration-200">
+            <span aria-hidden="true" class="grid place-items-center w-6 sm:w-7 shrink-0 text-slate-500 dark:text-slate-400 transition">
               <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 5v14M5 12h14"></path>
               </svg>
@@ -150,7 +150,7 @@
               type="number"
               step="0.1"
               min="0"
-              class="ring-soft w-14 sm:w-16 bg-white/40 dark:bg-white/5 hover:bg-white/55 dark:hover:bg-white/10 focus:bg-white/65 dark:focus:bg-white/15 rounded-full text-sm text-center border-0 outline-none tabular-nums transition"
+              class="ring-soft w-12 sm:w-16 bg-white/40 dark:bg-white/5 hover:bg-white/55 dark:hover:bg-white/10 focus:bg-white/65 dark:focus:bg-white/15 rounded-full text-sm text-center border-0 outline-none tabular-nums transition"
               aria-label="Quantity"
             />
 
@@ -162,7 +162,7 @@
             <button
               type="submit"
               aria-label="${AddBtnAria}"
-              class="ring-soft cta-glow rounded-full w-9 h-9 grid place-items-center shrink-0 hover:scale-110 active:scale-95 transition-transform"
+              class="ring-soft cta-glow rounded-full w-8 h-8 sm:w-9 sm:h-9 grid place-items-center shrink-0 hover:scale-110 active:scale-95 transition-transform"
             >
               <svg viewBox="0 0 24 24" class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 5v14M5 12h14"></path>
@@ -180,19 +180,19 @@
              card area to a low stacking-context so hover transforms can't
              leak above the add-row dropdowns. -->
         <div ws-replace="EmptyState"></div>
-        <div ws-replace="Items" class="pantry-grid grid sm:grid-cols-2 gap-2.5 sm:gap-3"></div>
+        <div ws-replace="Items" class="pantry-grid grid sm:grid-cols-2 gap-2 sm:gap-3"></div>
 
-        <p class="mt-5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">${PantryFootNote}</p>
+        <p class="mt-4 sm:mt-5 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed">${PantryFootNote}</p>
       </section>
 
       <!-- ==== RIGHT: AI Chef ==== -->
-      <section class="glass rounded-3xl p-5 sm:p-7" aria-labelledby="ai-h">
-        <header class="flex items-baseline gap-2 mb-5">
-          <h2 id="ai-h" class="text-2xl sm:text-3xl font-semibold tracking-tight inline-flex items-baseline gap-1.5">
+      <section class="glass rounded-3xl p-4 sm:p-7" aria-labelledby="ai-h">
+        <header class="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 mb-4 sm:mb-5">
+          <h2 id="ai-h" class="text-xl sm:text-3xl font-semibold tracking-tight inline-flex items-baseline gap-1.5">
             ${AiChefLabel}
             <span aria-hidden="true" class="text-fuchsia-400 dark:text-fuchsia-300 -translate-y-0.5">✦</span>
           </h2>
-          <span class="text-xs sm:text-sm font-serif italic text-slate-500 dark:text-slate-400">${ChefTaglineLabel}</span>
+          <span class="text-[11px] sm:text-sm font-serif italic text-slate-500 dark:text-slate-400">${ChefTaglineLabel}</span>
         </header>
 
         <!-- Generate button row -->
@@ -200,7 +200,7 @@
           ws-onclick="OnCook"
           ws-attr="CookBtnAttrs"
           type="button"
-          class="ring-soft cta-glow w-full rounded-2xl px-4 py-3.5 mb-5 inline-flex items-center justify-center gap-3 font-semibold tracking-tight text-sm sm:text-base"
+          class="ring-soft cta-glow w-full rounded-2xl px-3 sm:px-4 py-3 sm:py-3.5 mb-4 sm:mb-5 inline-flex items-center justify-center gap-2 sm:gap-3 font-semibold tracking-tight text-sm sm:text-base"
         >
           <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 3l1.5 3 3 1.5-3 1.5L5 12l-1.5-3-3-1.5 3-1.5L5 3zM18 9l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2zM13 14l1.2 2.4 2.4 1.2-2.4 1.2L13 21l-1.2-2.4-2.4-1.2 2.4-1.2L13 14z"></path>
@@ -212,7 +212,7 @@
         </button>
 
         <!-- Recipe display area -->
-        <div class="rounded-2xl bg-black/15 dark:bg-black/30 border border-white/10 min-h-[420px] p-5 sm:p-6 flex flex-col" ws-replace="RecipeArea"></div>
+        <div class="rounded-2xl bg-black/15 dark:bg-black/30 border border-white/10 min-h-[420px] p-4 sm:p-6 flex flex-col" ws-replace="RecipeArea"></div>
       </section>
     </div>
   </main>
@@ -238,12 +238,12 @@
      Sub-templates
      ===================================================== -->
 <div ws-template="ItemCard"
-     class="ing-card glass-inset rounded-2xl p-3 lift relative animate-addPop flex items-center gap-3"
+     class="ing-card glass-inset rounded-2xl p-2.5 sm:p-3 lift relative animate-addPop flex items-center gap-2.5 sm:gap-3"
 >
-  <span aria-hidden="true" class="grid place-items-center w-9 h-9 rounded-xl glass shrink-0 text-base">${Icon}</span>
+  <span aria-hidden="true" class="grid place-items-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl glass shrink-0 text-sm sm:text-base">${Icon}</span>
   <div class="min-w-0 flex-1">
     <h3 class="font-medium text-sm sm:text-base leading-tight truncate" title="${Name}">${Name}</h3>
-    <p class="text-xs text-slate-500 dark:text-slate-400 font-mono tabular-nums">${QtyDisplay}</p>
+    <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-mono tabular-nums">${QtyDisplay}</p>
     <div ws-replace="ExpiryBadge" class="mt-1"></div>
   </div>
   <button
@@ -322,7 +322,7 @@
 
   <!-- Title + meta -->
   <p class="text-[10px] uppercase tracking-[0.22em] text-fuchsia-500 dark:text-fuchsia-300 mb-1">${RecipeBadge}</p>
-  <h2 class="font-serif italic text-2xl sm:text-3xl leading-tight mb-3 animate-stepIn">${RecipeTitle}</h2>
+  <h2 class="font-serif italic text-xl sm:text-3xl leading-tight mb-3 animate-stepIn break-words">${RecipeTitle}</h2>
 
   <div class="flex flex-wrap items-center gap-1.5 mb-4">
     <span class="tag rounded-full px-3 py-1 text-xs font-mono inline-flex items-center gap-1.5">
@@ -391,7 +391,7 @@
   ws-template="UnitTrigger"
   ws-onclick="OnUnitToggle"
   type="button"
-  class="ring-soft bg-white/40 dark:bg-white/5 hover:bg-white/55 dark:hover:bg-white/10 rounded-full px-3 text-sm border-0 outline-none cursor-pointer flex items-center justify-center gap-1.5 transition min-w-[3.5rem] min-h-[2.25rem] whitespace-nowrap leading-none"
+  class="ring-soft bg-white/40 dark:bg-white/5 hover:bg-white/55 dark:hover:bg-white/10 rounded-full px-2 sm:px-3 text-xs sm:text-sm border-0 outline-none cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 transition min-w-[3rem] sm:min-w-[3.5rem] min-h-[2rem] sm:min-h-[2.25rem] whitespace-nowrap leading-none"
   aria-label="Choose unit"
 >
   <span class="font-medium tabular-nums">${UnitLabel}</span>
