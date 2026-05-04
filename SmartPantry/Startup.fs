@@ -1,7 +1,9 @@
 open System
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Http
+open Microsoft.AspNetCore.StaticFiles
 open Microsoft.Extensions.DependencyInjection
+open Microsoft.Extensions.FileProviders
 open Microsoft.Extensions.Hosting
 open WebSharper.AspNetCore
 open SmartPantry
@@ -58,12 +60,23 @@ let main args =
     // Anonymous identity cookie — must run before WebSharper RPC handlers.
     app.Use(fun ctx next -> spUidMiddleware ctx next) |> ignore
 
+    // Static-file cache headers. The Tailwind output and WebSharper bundle
+    // are not content-hashed, so a long edge cache (Cloudflare defaulted to
+    // 4h) makes deploys invisible to repeat visitors. 5 minutes is a sane
+    // compromise: deploys propagate quickly, origin still gets a break.
+    let staticFileOpts =
+        let o = StaticFileOptions()
+        o.OnPrepareResponse <- fun ctx ->
+            ctx.Context.Response.Headers["Cache-Control"] <-
+                Microsoft.Extensions.Primitives.StringValues "public,max-age=300,must-revalidate"
+        o
+
     app
 #if DEBUG
         .UseWebSharperScriptRedirect(startVite = true)
 #endif
         .UseAuthentication()
-        .UseStaticFiles()
+        .UseStaticFiles(staticFileOpts)
         .UseWebSharper(fun ws -> ws.Sitelet(Site.Main) |> ignore)
     |> ignore
 

@@ -44,6 +44,11 @@ COPY styles ./styles
 # Bring in the prebuilt Tailwind CSS so MSBuild does not re-run it
 COPY --from=css-build /src/wwwroot ./wwwroot
 
+# Hand-authored static assets that live in source (favicon, etc.) — Stage 1
+# only generates css/output.css, so without this the image has no favicon and
+# every page load 404s on /favicon.svg.
+COPY wwwroot/favicon.svg ./wwwroot/
+
 # Source
 COPY *.fs Main.html appsettings.json wsconfig.json esbuild.config.mjs vite.config.js ./
 
