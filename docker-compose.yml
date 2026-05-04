@@ -5,18 +5,23 @@ services:
       dockerfile: Dockerfile
     image: ghcr.io/justdawee/hhc62y_projectomega:latest
     container_name: smartpantry
+    # Port published on the host AND inside the container both default to
+    # 8080; override with PORT in .env (e.g. PORT=9300) without touching
+    # this file.
     ports:
-      - "8080:8080"
+      - "${PORT:-8080}:${PORT:-8080}"
     volumes:
       - ./data:/data
     environment:
       DB_PATH: /data/smartpantry.db
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
-      ASPNETCORE_URLS: http://+:8080
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
+      MEALDB_KEY: ${MEALDB_KEY:-1}
+      ASPNETCORE_URLS: http://+:${PORT:-8080}
       ASPNETCORE_ENVIRONMENT: Production
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:8080/"]
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:${PORT:-8080}/"]
       interval: 30s
       timeout: 5s
       retries: 3

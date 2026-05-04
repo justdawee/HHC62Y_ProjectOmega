@@ -39,12 +39,16 @@ if (-not $env:OPENAI_API_KEY) {
     Write-Host ""
 }
 
-# Make ASP.NET listen on http://localhost:5000 by default for local runs.
-if (-not $env:ASPNETCORE_URLS) { $env:ASPNETCORE_URLS = 'http://localhost:5000' }
+# Honour PORT from .env if set; default to 5000 for local runs (so it
+# doesn't clash with the Docker default of 8080 if they're side by side).
+$port = if ($env:PORT) { $env:PORT } else { '5000' }
+if (-not $env:ASPNETCORE_URLS) {
+    $env:ASPNETCORE_URLS = "http://localhost:$port"
+}
 if (-not $env:ASPNETCORE_ENVIRONMENT) { $env:ASPNETCORE_ENVIRONMENT = 'Production' }
 
 Write-Host ""
-Write-Host "  Starting SmartPantry on http://localhost:5000 ..." -ForegroundColor Green
+Write-Host "  Starting SmartPantry on http://localhost:$port ..." -ForegroundColor Green
 Write-Host "  (Ctrl+C to stop)" -ForegroundColor DarkGray
 Write-Host ""
 
