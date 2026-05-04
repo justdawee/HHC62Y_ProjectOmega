@@ -3,6 +3,11 @@
 > **AI-powered pantry & recipe assistant** — F# / WebSharper / SQLite / Tailwind / OpenAI / TheMealDB
 
 [![CI](https://github.com/justdawee/HHC62Y_ProjectOmega/actions/workflows/docker-build.yml/badge.svg)](https://github.com/justdawee/HHC62Y_ProjectOmega/actions/workflows/docker-build.yml)
+[![Live demo](https://img.shields.io/badge/live%20demo-smartpantry.justdawee.hu-fuchsia)](https://smartpantry.justdawee.hu)
+
+> **🌐 Live demo:** **<https://smartpantry.justdawee.hu>** — try it without
+> installing anything. The pantry is per-browser via cookie, so feel free
+> to add a few ingredients and let the AI cook something up.
 
 SmartPantry helps you stop throwing food away. Track what's in your pantry,
 flag what's about to expire, and let OpenAI's `gpt-5.4-mini` propose
@@ -108,6 +113,11 @@ password, no account**.
 ```
 
 ## Quick start
+
+The hosted instance at **<https://smartpantry.justdawee.hu>** is the
+fastest way to try SmartPantry — nothing to install, your pantry lives
+in a per-browser cookie. Self-host only if you want to swap in your own
+OpenAI key, change the model, or modify the code.
 
 You need: **Docker** ≥ 24 (or **.NET 10** + **Node 20** for local dev),
 plus an **OpenAI API key** (cheap, get one at
