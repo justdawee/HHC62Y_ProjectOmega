@@ -83,6 +83,26 @@ module Strings =
         // author's GitHub between them.
         FooterPrefix: string
         FooterAuthor: string
+        FooterPrivacy: string
+
+        // first-visit cookie notice
+        ConsentTitle: string
+        ConsentBody: string
+        ConsentOk: string
+        ConsentLearnMore: string
+
+        // re-openable Privacy & data modal
+        PrivacyTitle: string
+        PrivacyIntro: string
+        PrivacyCookieHead: string
+        PrivacyCookieBody: string
+        PrivacyStorageHead: string
+        PrivacyStorageBody: string
+        PrivacyAiHead: string
+        PrivacyAiBody: string
+        PrivacyDeleteHead: string
+        PrivacyDeleteBody: string
+        PrivacyClose: string
     }
 
     let en: T = {
@@ -146,6 +166,24 @@ module Strings =
 
         FooterPrefix = "SmartPantry · pantry, refined · built with ♥ by"
         FooterAuthor = "JustDawee"
+        FooterPrivacy = "Privacy"
+
+        ConsentTitle = "A quick heads-up about cookies"
+        ConsentBody = "SmartPantry stores a single anonymous identifier cookie so your pantry stays separate from everyone else's. We don't track you and we don't share data with advertisers."
+        ConsentOk = "Got it"
+        ConsentLearnMore = "Learn more"
+
+        PrivacyTitle = "Privacy & data"
+        PrivacyIntro = "Here's exactly what SmartPantry stores and where it goes. Nothing else."
+        PrivacyCookieHead = "1 cookie · sp_uid"
+        PrivacyCookieBody = "A random anonymous identifier set the first time you visit. HttpOnly, SameSite=Lax, expires in 1 year. Used only to keep your pantry separate from anyone else's. No name, email, IP geolocation or device fingerprint is stored."
+        PrivacyStorageHead = "Browser storage · theme + language"
+        PrivacyStorageBody = "Your dark/light preference and EN/HU choice live in localStorage so the app remembers them between visits. They never leave your browser."
+        PrivacyAiHead = "Outbound API calls"
+        PrivacyAiBody = "When you ask for a recipe, the names and quantities of your pantry items are sent to OpenAI (recipe generation) and TheMealDB (matching photos). No identifier, cookie or session token is ever sent along — both providers receive only ingredient names."
+        PrivacyDeleteHead = "Deleting your data"
+        PrivacyDeleteBody = "Use 'Clear all' to wipe every pantry item from the database. Clearing your browser cookies removes the sp_uid identifier and effectively resets your account — there is no further trace tied to you on the server."
+        PrivacyClose = "Close"
     }
 
     let hu: T = {
@@ -209,6 +247,24 @@ module Strings =
 
         FooterPrefix = "SmartPantry · kamra, finomhangolva · készítette szeretettel"
         FooterAuthor = "JustDawee"
+        FooterPrivacy = "Adatkezelés"
+
+        ConsentTitle = "Pár szó a cookie-król"
+        ConsentBody = "A SmartPantry egyetlen anonim azonosító cookie-t használ, hogy a kamrád külön legyen mindenki másétól. Nem követünk és nem osztunk meg adatot hirdetőkkel."
+        ConsentOk = "Rendben"
+        ConsentLearnMore = "Részletek"
+
+        PrivacyTitle = "Adatkezelés"
+        PrivacyIntro = "Pontosan ennyi adatot tárol a SmartPantry — sem többet, sem kevesebbet."
+        PrivacyCookieHead = "1 cookie · sp_uid"
+        PrivacyCookieBody = "Véletlenszerű anonim azonosító, ami az első látogatáskor jön létre. HttpOnly, SameSite=Lax, lejárata 1 év. Egyedüli célja, hogy a kamrád külön legyen mindenki másétól. Nevet, e-mailt, IP-helyet vagy eszköz-ujjlenyomatot nem tárolunk."
+        PrivacyStorageHead = "Böngésző-tárhely · téma és nyelv"
+        PrivacyStorageBody = "A világos/sötét és EN/HU beállításod a localStorage-ban él, így az app emlékszik rájuk a következő látogatásokkor. Ezek soha nem hagyják el a böngésződet."
+        PrivacyAiHead = "Külső API-hívások"
+        PrivacyAiBody = "Receptkéréskor a kamrában lévő hozzávalók neve és mennyisége elküldésre kerül az OpenAI (receptgenerálás) és TheMealDB (képkereső) felé. Sem az azonosítód, sem a cookie-d nem megy velük — a szolgáltatók csak a hozzávalók nevét látják."
+        PrivacyDeleteHead = "Adattörlés"
+        PrivacyDeleteBody = "A „Kamra ürítése” gombbal minden tételt törölsz az adatbázisból. A böngésző cookie-jainak törlése megszünteti az sp_uid azonosítót, és gyakorlatilag visszaállítja a fiókod — utána semmi nyom nem marad rólad a szerveren."
+        PrivacyClose = "Bezárás"
     }
 
     /// Lookup table for the current language.

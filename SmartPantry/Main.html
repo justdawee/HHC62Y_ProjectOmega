@@ -218,11 +218,18 @@
   </main>
 
   <!-- ============== Footer ============== -->
-  <footer class="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 pb-6 text-center">
+  <footer class="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 pb-6 text-center space-y-1.5">
     <p class="text-[11px] sm:text-xs font-mono text-slate-500 dark:text-slate-400 tracking-wider">
       ${FooterPrefix}
       <a href="https://github.com/justdawee" target="_blank" rel="noopener noreferrer"
          class="footer-author font-semibold hover:text-fuchsia-500 dark:hover:text-fuchsia-300 transition-colors">${FooterAuthor}</a>
+    </p>
+    <p class="text-[11px] font-mono">
+      <button
+        ws-onclick="OnOpenPrivacy"
+        type="button"
+        class="text-slate-500 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-300 underline-offset-4 hover:underline transition-colors"
+      >${FooterPrivacyLabel}</button>
     </p>
   </footer>
 </div>
@@ -488,3 +495,92 @@
 <span ws-template="BadgeFresh"   class="badge badge-fresh">${BadgeText}</span>
 <span ws-template="BadgeSoon"    class="badge badge-soon pulse-dot">${BadgeText}</span>
 <span ws-template="BadgeExpired" class="badge badge-expired">${BadgeText}</span>
+
+<!-- First-visit consent banner — sticky bottom on small screens, bottom-
+     right card on desktop. Dismissable via either button. -->
+<div ws-template="ConsentBanner"
+     class="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:max-w-md z-40 glass-pop rounded-2xl p-4 sm:p-5 animate-modalIn"
+     role="region"
+     aria-label="Cookie notice"
+>
+  <div class="flex items-start gap-3">
+    <span aria-hidden="true" class="grid place-items-center w-9 h-9 rounded-xl glass-inset shrink-0 text-fuchsia-500 dark:text-fuchsia-300">
+      <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 8v5"></path>
+        <circle cx="12" cy="16" r="0.6" fill="currentColor"></circle>
+      </svg>
+    </span>
+    <div class="min-w-0 flex-1">
+      <p class="font-medium text-sm mb-1">${ConsentTitleText}</p>
+      <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3">${ConsentBodyText}</p>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button
+          ws-onclick="OnConsentOk"
+          type="button"
+          class="ring-soft cta-glow rounded-full px-4 py-1.5 text-xs font-semibold"
+        >${ConsentOkLabel}</button>
+        <button
+          ws-onclick="OnConsentLearnMore"
+          type="button"
+          class="ring-soft text-xs text-slate-500 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-300 underline-offset-4 hover:underline px-2 transition-colors"
+        >${ConsentLearnMoreLabel}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Re-openable Privacy & data modal -->
+<div ws-template="PrivacyModal"
+     class="fixed inset-0 z-50 grid place-items-center p-4 sm:p-8 animate-backdropIn"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="privacy-title"
+>
+  <button
+    ws-onclick="OnClosePrivacy"
+    type="button"
+    class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-sm cursor-default"
+    aria-label="Close"
+    tabindex="-1"
+  ></button>
+  <div class="relative w-full max-w-xl glass-pop rounded-3xl p-6 sm:p-8 max-h-[88vh] overflow-y-auto animate-modalIn">
+    <button
+      ws-onclick="OnClosePrivacy"
+      type="button"
+      class="absolute top-4 right-4 w-9 h-9 grid place-items-center rounded-full glass-inset ring-soft hover:scale-105 active:scale-95 transition"
+      aria-label="Close"
+    >
+      <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6L6 18M6 6l12 12"></path>
+      </svg>
+    </button>
+    <h2 id="privacy-title" class="font-serif italic text-2xl sm:text-3xl mb-2">${PrivacyTitleText}</h2>
+    <p class="text-sm text-slate-600 dark:text-slate-300 mb-5">${PrivacyIntroText}</p>
+    <div class="space-y-4 text-sm">
+      <section>
+        <h3 class="font-semibold text-fuchsia-600 dark:text-fuchsia-300 text-xs uppercase tracking-wider mb-1">${PrivacyCookieHeadText}</h3>
+        <p class="text-slate-700 dark:text-slate-200 leading-relaxed">${PrivacyCookieBodyText}</p>
+      </section>
+      <section>
+        <h3 class="font-semibold text-fuchsia-600 dark:text-fuchsia-300 text-xs uppercase tracking-wider mb-1">${PrivacyStorageHeadText}</h3>
+        <p class="text-slate-700 dark:text-slate-200 leading-relaxed">${PrivacyStorageBodyText}</p>
+      </section>
+      <section>
+        <h3 class="font-semibold text-fuchsia-600 dark:text-fuchsia-300 text-xs uppercase tracking-wider mb-1">${PrivacyAiHeadText}</h3>
+        <p class="text-slate-700 dark:text-slate-200 leading-relaxed">${PrivacyAiBodyText}</p>
+      </section>
+      <section>
+        <h3 class="font-semibold text-fuchsia-600 dark:text-fuchsia-300 text-xs uppercase tracking-wider mb-1">${PrivacyDeleteHeadText}</h3>
+        <p class="text-slate-700 dark:text-slate-200 leading-relaxed">${PrivacyDeleteBodyText}</p>
+      </section>
+    </div>
+    <div class="mt-6 flex justify-end">
+      <button
+        ws-onclick="OnClosePrivacy"
+        type="button"
+        class="ring-soft cta-glow rounded-2xl px-5 py-2.5 text-sm font-semibold"
+      >${PrivacyCloseLabel}</button>
+    </div>
+  </div>
+</div>

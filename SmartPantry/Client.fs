@@ -69,8 +69,9 @@ module Client =
     // Persistence
     // ------------------------------------------------------------------
 
-    let private themeKey = "sp-theme"
-    let private langKey  = "sp-lang"
+    let private themeKey   = "sp-theme"
+    let private langKey    = "sp-lang"
+    let private consentKey = "sp-consent"
 
     let private applyDarkClass (isDark: bool) =
         let html = JS.Document.DocumentElement
@@ -94,6 +95,11 @@ module Client =
             | "hu" -> Hu
             | _    -> En
         with _ -> En
+
+    /// Has the user already dismissed the cookie notice?
+    let private readInitialConsent () : bool =
+        try JS.Window.LocalStorage.GetItem(consentKey) = "ok"
+        with _ -> false
 
     let private langToCode (l: Lang) =
         match l with En -> "en" | Hu -> "hu"
@@ -460,6 +466,13 @@ module Client =
         // ---- lang switch toast
         let toastVisible = Var.Create false
 
+        // ---- GDPR consent banner + privacy modal
+        let consentAcked = Var.Create (readInitialConsent ())
+        let privacyOpen  = Var.Create false
+        let ackConsent () =
+            consentAcked.Value <- true
+            try JS.Window.LocalStorage.SetItem(consentKey, "ok") with _ -> ()
+
         // ---- initial pantry load
         async {
             let! initial = Server.GetItems ()
@@ -745,6 +758,48 @@ module Client =
                         .Doc())
             |> Doc.EmbedView
 
+        // ---- consent banner Doc — only renders until the user dismisses
+        let consentDoc =
+            View.Map2 (fun acked l -> (acked, l)) consentAcked.View lang.View
+            |> View.Map (fun (acked, l) ->
+                if acked then Doc.Empty
+                else
+                    let s = Strings.table l
+                    Templates.MainTemplate.ConsentBanner()
+                        .ConsentTitleText(s.ConsentTitle)
+                        .ConsentBodyText(s.ConsentBody)
+                        .ConsentOkLabel(s.ConsentOk)
+                        .ConsentLearnMoreLabel(s.ConsentLearnMore)
+                        .OnConsentOk(fun _ -> ackConsent ())
+                        .OnConsentLearnMore(fun _ ->
+                            ackConsent ()
+                            privacyOpen.Value <- true)
+                        .Doc())
+            |> Doc.EmbedView
+
+        // ---- privacy modal Doc — re-openable from the footer link
+        let privacyDoc =
+            View.Map2 (fun isOpen l -> (isOpen, l)) privacyOpen.View lang.View
+            |> View.Map (fun (isOpen, l) ->
+                if not isOpen then Doc.Empty
+                else
+                    let s = Strings.table l
+                    Templates.MainTemplate.PrivacyModal()
+                        .PrivacyTitleText(s.PrivacyTitle)
+                        .PrivacyIntroText(s.PrivacyIntro)
+                        .PrivacyCookieHeadText(s.PrivacyCookieHead)
+                        .PrivacyCookieBodyText(s.PrivacyCookieBody)
+                        .PrivacyStorageHeadText(s.PrivacyStorageHead)
+                        .PrivacyStorageBodyText(s.PrivacyStorageBody)
+                        .PrivacyAiHeadText(s.PrivacyAiHead)
+                        .PrivacyAiBodyText(s.PrivacyAiBody)
+                        .PrivacyDeleteHeadText(s.PrivacyDeleteHead)
+                        .PrivacyDeleteBodyText(s.PrivacyDeleteBody)
+                        .PrivacyCloseLabel(s.PrivacyClose)
+                        .OnClosePrivacy(fun _ -> privacyOpen.Value <- false)
+                        .Doc())
+            |> Doc.EmbedView
+
         // ---- assemble App template
         let appDoc =
             Templates.MainTemplate.App()
@@ -786,6 +841,8 @@ module Client =
                 .RecipeArea([ recipeAreaDoc ])
                 .FooterPrefix(strView (fun s -> s.FooterPrefix))
                 .FooterAuthor(strView (fun s -> s.FooterAuthor))
+                .FooterPrivacyLabel(strView (fun s -> s.FooterPrivacy))
+                .OnOpenPrivacy(fun _ -> privacyOpen.Value <- true)
                 .Doc()
 
         // Wrap the entire app in a click-listening container. When a click
@@ -802,4 +859,4 @@ module Client =
                         if unitOpen.Value then unitOpen.Value <- false
                         if suggOpen.Value then suggOpen.Value <- false)
             ] [ appDoc ]
-        Doc.Concat [ dismissOnOutsideClick; toastDoc ]
+        Doc.Concat [ dismissOnOutsideClick; toastDoc; consentDoc; privacyDoc ]
