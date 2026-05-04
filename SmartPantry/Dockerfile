@@ -31,8 +31,13 @@ RUN apt-get update \
 COPY SmartPantry.fsproj ./
 RUN dotnet restore SmartPantry.fsproj
 
-# Copy npm assets so the in-build NpmInstall target uses the same lockfile
+# Copy npm assets and install up-front so the MSBuild ESBuildBundle target
+# (which runs `node esbuild.config.mjs` after WebSharperCompile) finds esbuild
+# already on disk. Doing it here instead of inside the publish step avoids
+# the Inputs/Outputs incremental check on the NpmInstall target tripping.
 COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
 COPY tailwind.config.js ./
 COPY styles ./styles
 
@@ -44,6 +49,19 @@ COPY *.fs Main.html appsettings.json wsconfig.json esbuild.config.mjs vite.confi
 
 # Publish
 RUN dotnet publish SmartPantry.fsproj -c Release -o /app/publish /p:UseAppHost=false
+
+# WebSharper auto-injects <link href="/Scripts/WebSharper/all.css"> alongside
+# all.js even though the Release bundler only emits all.js. Without this stub
+# the browser gets a 404 on every page load. The stub is intentionally empty
+# because all real styles ship through Tailwind's output.css.
+RUN printf '/* SmartPantry uses Tailwind output.css instead. This empty stub silences the\n   404 that WebSharper emits when a Release bundle injects a default stylesheet. */\n' \
+    > /app/publish/wwwroot/Scripts/WebSharper/all.css
+
+# Fail fast if either bundle artifact is missing — prevents shipping a broken image.
+RUN test -s /app/publish/wwwroot/Scripts/WebSharper/all.js \
+    && test -f /app/publish/wwwroot/Scripts/WebSharper/all.css \
+    || (echo "FATAL: WebSharper bundle missing from publish output." \
+        && ls -laR /app/publish/wwwroot/Scripts 2>&1 || true; exit 1)
 
 # ============================================================
 # Stage 3 — Runtime
