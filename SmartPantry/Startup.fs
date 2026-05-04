@@ -37,8 +37,8 @@ let main args =
 
     let builder = WebApplication.CreateBuilder(args)
 
+    builder.Services.AddWebSharperServices() |> ignore
     builder.Services
-        .AddWebSharper()
         .AddAuthentication("WebSharper")
         .AddCookie("WebSharper", fun _ -> ())
     |> ignore
