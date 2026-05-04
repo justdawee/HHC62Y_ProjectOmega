@@ -6,7 +6,7 @@
 set -e
 
 mkdir -p /data
-chown -R appuser:appuser /data
+chown -R app:app /data
 
 cd /app
-exec gosu appuser dotnet SmartPantry.dll
+exec gosu app dotnet SmartPantry.dll

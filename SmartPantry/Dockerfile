@@ -53,12 +53,15 @@ WORKDIR /app
 
 # gosu lets the entrypoint drop root privileges cleanly after fixing
 # ownership of the bind-mounted /data volume.
+# We reuse the 'app' user the dotnet/aspnet base image already ships
+# with (creating it on the fly if a future base image drops it). Hard-
+# coding a UID like 1000 conflicts with the base image's own user.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gosu \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --system --create-home --uid 1000 appuser \
+    && (id -u app >/dev/null 2>&1 || useradd --system --create-home app) \
     && mkdir -p /data \
-    && chown -R appuser:appuser /data /app
+    && chown -R app:app /data /app
 
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
