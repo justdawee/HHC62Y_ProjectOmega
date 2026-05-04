@@ -1,0 +1,7 @@
+# Force LF line endings for files that run inside the Linux container,
+# regardless of how Windows clients have core.autocrlf configured.
+# Without this, /entrypoint.sh would carry CRLF endings and the Linux
+# /bin/sh would complain "/entrypoint.sh: not found" at container start.
+*.sh           text eol=lf
+Dockerfile     text eol=lf
+*.dockerignore text eol=lf

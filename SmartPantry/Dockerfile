@@ -51,8 +51,14 @@ RUN dotnet publish SmartPantry.fsproj -c Release -o /app/publish /p:UseAppHost=f
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Persistent SQLite directory (mounted as volume in compose)
-RUN mkdir -p /data && chown -R 1000:1000 /data
+# gosu lets the entrypoint drop root privileges cleanly after fixing
+# ownership of the bind-mounted /data volume.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --create-home --uid 1000 appuser \
+    && mkdir -p /data \
+    && chown -R appuser:appuser /data /app
 
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
@@ -61,8 +67,9 @@ ENV ASPNETCORE_URLS=http://+:8080 \
 EXPOSE 8080
 
 COPY --from=dotnet-build /app/publish ./
+COPY --chmod=0755 entrypoint.sh /entrypoint.sh
 
-# Drop to non-root for runtime
-USER 1000:1000
-
-ENTRYPOINT ["dotnet", "SmartPantry.dll"]
+# Container starts as root so the entrypoint can chown the mounted
+# volume; the entrypoint then `gosu appuser` switches to the app user
+# before launching dotnet.
+ENTRYPOINT ["/entrypoint.sh"]
