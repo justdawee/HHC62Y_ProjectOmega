@@ -56,6 +56,30 @@ module UserContext =
             // on the response and subsequent RPC posts include it.
             Guid.NewGuid().ToString("N")
 
+    /// Best-effort client IP for rate-limit keying. Trusts CF-Connecting-IP
+    /// (Cloudflare) and X-Forwarded-For (other proxies) so that direct hits
+    /// behind the proxy are still attributable; falls back to the TCP peer.
+    /// Spoofing CF-Connecting-IP requires bypassing Cloudflare entirely, at
+    /// which point the attacker shows up under a real RemoteIpAddress anyway.
+    let currentClientIp () : string =
+        let http = httpContext ()
+        let tryHeader (name: string) =
+            let mutable vs = Microsoft.Extensions.Primitives.StringValues.Empty
+            if http.Request.Headers.TryGetValue(name, &vs) && vs.Count > 0 then
+                let raw = vs.[0]
+                if String.IsNullOrWhiteSpace raw then None
+                else Some (raw.Split(',').[0].Trim())
+            else None
+        match tryHeader "CF-Connecting-IP" with
+        | Some ip -> ip
+        | None ->
+            match tryHeader "X-Forwarded-For" with
+            | Some ip -> ip
+            | None ->
+                match http.Connection.RemoteIpAddress with
+                | null -> "unknown"
+                | ip -> ip.ToString()
+
     /// Pulls the IHttpClientFactory off DI to avoid HttpClient socket leaks.
     let getHttpClient () : HttpClient =
         let http = httpContext ()
@@ -69,31 +93,126 @@ module UserContext =
 /// can wire them straight to JS Promises.
 module Server =
 
+    /// Maximum length of an ingredient name accepted by the server. Anything
+    /// longer is almost certainly an attempt to balloon the LLM prompt.
+    let private maxNameLength = 80
+
+    /// Hard upper bound on items per user. Stops a single bored attacker
+    /// from filling the SQLite DB and the OpenAI prompt with junk.
+    let private maxItemsPerUser = 200
+
+    /// Cap on items forwarded to the LLM in a single GenerateRecipes call.
+    /// The pantry can hold more (up to maxItemsPerUser); the prompt only
+    /// gets the first slice so token cost is bounded.
+    let private maxItemsToLlm = 30
+
+    /// Highest plausible quantity. Anything past this is either a typo or
+    /// a deliberate prompt-bloat attempt ("99999999999999999 kg flour").
+    let private maxQuantity = 100_000.0
+
+    /// Two-axis rate-limit keys: cookie identity (sp_uid) and client IP,
+    /// checked in parallel. The cookie axis catches naive spammers; the
+    /// IP axis catches the "fresh cookie per request" trick (the cookie
+    /// middleware auto-mints a new uid for any request without one).
+    let private cookieKey () = UserContext.currentUserId ()
+    let private ipKey () = UserContext.currentClientIp ()
+
+    /// Rate-limit gate for write-style operations. Failed checks throw so
+    /// the WebSharper RPC pipeline turns it into a client-side exception
+    /// (the UI's existing try/with surfaces the message inline). Write
+    /// traffic is cheap, so a real human never trips this.
+    let private guardWrite () =
+        match RateLimiter.checkBoth "write" (cookieKey ()) (ipKey ())
+                  RateLimiter.writePerCookie RateLimiter.writePerIp with
+        | RateLimiter.Allowed -> ()
+        | RateLimiter.Denied retry ->
+            failwithf "Túl sok kérés / Too many requests. Próbáld újra %d másodperc múlva." retry
+
+    /// Rate-limit gate for read operations. We return an empty result
+    /// instead of throwing so accidental reload-spam doesn't render an
+    /// error in the UI; a real human would never hit the read cap.
+    let private guardRead () : bool =
+        match RateLimiter.checkBoth "read" (cookieKey ()) (ipKey ())
+                  RateLimiter.readPerCookie RateLimiter.readPerIp with
+        | RateLimiter.Allowed -> true
+        | RateLimiter.Denied _ -> false
+
+    /// Server-side defense-in-depth name validation. Mirrors the client
+    /// validator (Validation.fs) and adds a hard length cap so the LLM
+    /// prompt size stays bounded regardless of what the client sends.
+    let private sanitizeName (raw: string) : Result<string, string> =
+        let trimmed = (raw |> Option.ofObj |> Option.defaultValue "").Trim()
+        if String.IsNullOrWhiteSpace trimmed then
+            Error "Az alapanyag neve nem lehet üres."
+        elif trimmed.Length > maxNameLength then
+            Error (sprintf "Az alapanyag neve túl hosszú (max %d karakter)." maxNameLength)
+        else
+            match Validation.validate trimmed with
+            | Ok cleaned -> Ok cleaned
+            | Error reason ->
+                // Server side we don't know the user's UI language, so we
+                // ship a bilingual fallback. The client validator already
+                // catches this in the user's preferred language for the
+                // common case.
+                Error (Validation.reasonText Hu reason)
+
+    let private sanitizeUnit (raw: string) : string =
+        let u = (raw |> Option.ofObj |> Option.defaultValue "").Trim()
+        if String.IsNullOrWhiteSpace u then "db"
+        elif u.Length > 16 then u.Substring(0, 16)
+        else u
+
+    let private sanitizeQuantity (q: float) : Result<float, string> =
+        if Double.IsNaN q || Double.IsInfinity q then
+            Error "Érvénytelen mennyiség."
+        elif q < 0.0 then
+            Error "A mennyiség nem lehet negatív."
+        elif q > maxQuantity then
+            Error (sprintf "A mennyiség túl nagy (max %g)." maxQuantity)
+        else Ok q
+
     [<Rpc>]
     let GetItems () : Async<PantryItem list> =
         async {
-            let userId = UserContext.currentUserId ()
-            return Database.getItems userId
+            if not (guardRead ()) then
+                // Spammer — quietly return empty. A real user never sees this.
+                return []
+            else
+                let userId = UserContext.currentUserId ()
+                return Database.getItems userId
         }
 
     [<Rpc>]
     let AddItem (input: PantryItemInput) : Async<PantryItem> =
         async {
+            guardWrite ()
             let userId = UserContext.currentUserId ()
-            // Minimal server-side validation — defense in depth.
-            let trimmed = (input.Name |> Option.ofObj |> Option.defaultValue "").Trim()
-            if String.IsNullOrWhiteSpace(trimmed) then
-                return failwith "Az alapanyag neve nem lehet üres."
-            elif input.Quantity < 0.0 then
-                return failwith "A mennyiség nem lehet negatív."
+
+            // Enforce per-user item ceiling BEFORE we hit the validator so
+            // a flood of bad-name posts can't probe the validator either.
+            let existing = Database.getItems userId
+            if List.length existing >= maxItemsPerUser then
+                return failwithf "A kamra már megtelt (max %d tétel)." maxItemsPerUser
             else
-                let safe = { input with Name = trimmed; Unit = (input.Unit |> Option.ofObj |> Option.defaultValue "db").Trim() }
-                return Database.addItem userId safe
+
+            match sanitizeName input.Name with
+            | Error msg -> return failwith msg
+            | Ok cleanName ->
+                match sanitizeQuantity input.Quantity with
+                | Error msg -> return failwith msg
+                | Ok q ->
+                    let safe =
+                        { input with
+                            Name = cleanName
+                            Quantity = q
+                            Unit = sanitizeUnit input.Unit }
+                    return Database.addItem userId safe
         }
 
     [<Rpc>]
     let DeleteItem (id: int) : Async<bool> =
         async {
+            guardWrite ()
             let userId = UserContext.currentUserId ()
             let rows = Database.deleteItem userId id
             return rows > 0
@@ -102,16 +221,30 @@ module Server =
     [<Rpc>]
     let UpdateItem (item: PantryItem) : Async<bool> =
         async {
+            guardWrite ()
             let userId = UserContext.currentUserId ()
-            // Force the server-side userId regardless of what the client sent.
-            let safe = { item with UserId = userId }
-            let rows = Database.updateItem userId safe
-            return rows > 0
+
+            match sanitizeName item.Name with
+            | Error msg -> return failwith msg
+            | Ok cleanName ->
+                match sanitizeQuantity item.Quantity with
+                | Error msg -> return failwith msg
+                | Ok q ->
+                    // Force the server-side userId regardless of what the client sent.
+                    let safe =
+                        { item with
+                            UserId = userId
+                            Name = cleanName
+                            Quantity = q
+                            Unit = sanitizeUnit item.Unit }
+                    let rows = Database.updateItem userId safe
+                    return rows > 0
         }
 
     [<Rpc>]
     let DeleteAll () : Async<int> =
         async {
+            guardWrite ()
             let userId = UserContext.currentUserId ()
             return Database.deleteAll userId
         }
@@ -119,6 +252,20 @@ module Server =
     [<Rpc>]
     let GenerateRecipes (lang: Lang) : Async<Result<RecipeBundle, string>> =
         async {
+            // First gate: cheap rate-limit check. Recipes spend OpenAI
+            // tokens, so the cap is the tightest of any RPC.
+            match RateLimiter.checkBoth "recipes" (cookieKey ()) (ipKey ())
+                      RateLimiter.recipesPerCookie RateLimiter.recipesPerIp with
+            | RateLimiter.Denied retry ->
+                let msg =
+                    match lang with
+                    | En ->
+                        sprintf "Slow down — too many recipe requests. Try again in %d seconds." retry
+                    | Hu ->
+                        sprintf "Túl gyorsan kérsz recepteket. Próbáld újra %d másodperc múlva." retry
+                return Error msg
+            | RateLimiter.Allowed ->
+
             let userId = UserContext.currentUserId ()
             let items = Database.getItems userId
             if List.isEmpty items then
@@ -128,9 +275,12 @@ module Server =
                     | Hu -> "A kamra üres — kérlek vegyél fel előbb legalább egy hozzávalót."
                 return Error msg
             else
-                // Server-side safeguard: refuse to spend tokens if NOTHING in
-                // the pantry resembles a real food. Catalog hits or items that
-                // pass server-side Validation are both treated as plausible.
+                // Server-side safeguard: only feed items that look like real
+                // food to the LLM. Catalog hits OR items that pass the
+                // Validation heuristics qualify; everything else is dropped
+                // BEFORE we burn tokens on it. (Previously we only checked
+                // that *some* item was plausible, but still passed the full
+                // list to the LLM — giant token-waste vector.)
                 let plausible =
                     items
                     |> List.filter (fun it ->
@@ -147,19 +297,23 @@ module Server =
                         | Hu -> "Egyik tétel sem tűnik valódi ételnek. Receptkéréshez vegyél fel legalább egy felismerhető hozzávalót."
                     return Error msg
                 else
+                // Extra hard cap on prompt size: even if a user has 200
+                // legit items, the LLM only sees the first 30. Keeps token
+                // cost predictable.
+                let trimmed = plausible |> List.truncate maxItemsToLlm
                 let httpClient = UserContext.getHttpClient ()
 
                 // 1) Harvest real-world inspiration recipes from TheMealDB
                 //    (filtered by 1–3 of the user's English-mapped ingredients).
                 let! inspirations =
-                    MealDbClient.collectInspirations httpClient items
+                    MealDbClient.collectInspirations httpClient trimmed
                     |> Async.AwaitTask
                 let inspirationTitles =
                     inspirations |> List.map (fun i -> i.Title)
 
                 // 2) Hand the inspirations to Groq as style references.
                 let! groqResult =
-                    LlmClient.generateRecipesAsync httpClient lang inspirationTitles items
+                    LlmClient.generateRecipesAsync httpClient lang inspirationTitles trimmed
                     |> Async.AwaitTask
 
                 match groqResult with

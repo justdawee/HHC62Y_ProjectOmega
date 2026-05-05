@@ -12,6 +12,7 @@
     <Compile Include="Database.fs" />
     <Compile Include="MealDbClient.fs" />
     <Compile Include="LlmClient.fs" />
+    <Compile Include="RateLimiter.fs" />
     <Compile Include="Remoting.fs" />
     <Compile Include="Client.fs" />
     <Compile Include="Site.fs" />
